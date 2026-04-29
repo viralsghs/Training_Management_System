@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Mark Attendance — MedTrain</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="../js/config.js"></script>
+<style>
+*,::before,::after{box-sizing:border-box;margin:0;padding:0}
+:root{--teal:#00c9b1;--green:#10b981;--red:#ef4444;--ink:#0a0a14;--surf:#1e1e30;--text:#e2e8f0;--text2:#94a3b8;--border:rgba(255,255,255,.1)}
+body{font-family:'DM Sans',sans-serif;background:var(--ink);color:var(--text);min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;position:relative;overflow:hidden}
+.bg{position:fixed;inset:0;background:radial-gradient(ellipse 70% 70% at 30% 20%,rgba(0,201,177,.12),transparent 60%),radial-gradient(ellipse 60% 80% at 80% 80%,rgba(16,185,129,.08),transparent 60%),var(--ink);z-index:0}
+.card{position:relative;z-index:1;background:rgba(30,30,48,.95);border:1px solid var(--border);border-radius:24px;padding:36px 32px;width:100%;max-width:420px;box-shadow:0 32px 64px rgba(0,0,0,.5);backdrop-filter:blur(20px)}
+.icon-wrap{width:72px;height:72px;border-radius:20px;background:linear-gradient(135deg,var(--teal),var(--green));display:flex;align-items:center;justify-content:center;font-size:32px;margin:0 auto 16px;box-shadow:0 12px 32px rgba(0,201,177,.3)}
+h1{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;text-align:center;margin-bottom:6px}
+.sub{font-size:13px;color:var(--text2);text-align:center;margin-bottom:20px}
+.training-box{background:rgba(0,201,177,.08);border:1px solid rgba(0,201,177,.2);border-radius:12px;padding:14px 16px;margin-bottom:24px;text-align:center}
+.training-box .t-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--teal);margin-bottom:4px}
+.training-box .t-meta{font-size:12px;color:var(--text2)}
+label{display:block;font-size:11px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:7px}
+input[type=text]{width:100%;padding:16px;background:rgba(255,255,255,.06);border:2px solid rgba(255,255,255,.1);border-radius:12px;color:var(--text);font-size:24px;font-family:'Syne',sans-serif;font-weight:700;text-align:center;letter-spacing:4px;outline:none;transition:all .2s;text-transform:uppercase}
+input[type=text]:focus{border-color:var(--teal);background:rgba(0,201,177,.06);box-shadow:0 0 0 4px rgba(0,201,177,.12)}
+.emp-preview{margin-top:10px;padding:12px 14px;background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:10px;font-size:13px;display:none}
+.emp-preview .emp-name{font-weight:700;font-size:15px;margin-bottom:2px}
+.emp-preview .emp-info{color:var(--text2)}
+.btn{width:100%;padding:15px;background:linear-gradient(135deg,var(--teal),#00a896);border:none;border-radius:12px;color:#0a0a14;font-size:16px;font-family:'Syne',sans-serif;font-weight:800;cursor:pointer;transition:all .25s;margin-top:16px;letter-spacing:.3px;box-shadow:0 8px 24px rgba(0,201,177,.3)}
+.btn:hover{transform:translateY(-2px);box-shadow:0 12px 32px rgba(0,201,177,.4)}
+.btn:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.result{display:none;text-align:center;padding:12px 0}
+.result-icon{font-size:64px;margin-bottom:12px;animation:pop .4s ease}
+.result-title{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px}
+.result-msg{font-size:14px;color:var(--text2);margin-bottom:20px}
+.emp-card{background:rgba(0,201,177,.08);border:1px solid rgba(0,201,177,.2);border-radius:12px;padding:16px;margin-bottom:16px;text-align:left}
+.emp-card .row{display:flex;justify-content:space-between;padding:4px 0;font-size:13px;border-bottom:1px solid rgba(255,255,255,.05)}
+.emp-card .row:last-child{border:none}
+.emp-card .row span:first-child{color:var(--text2)}
+.emp-card .row span:last-child{font-weight:600}
+.btn-reset{width:100%;padding:10px;background:rgba(255,255,255,.06);border:1px solid rgba(255,255,255,.1);border-radius:10px;color:var(--text2);font-size:13px;cursor:pointer;font-family:inherit;transition:all .2s}
+.btn-reset:hover{background:rgba(255,255,255,.1);color:var(--text)}
+.spinner{display:inline-block;width:18px;height:18px;border:2px solid rgba(0,0,0,.3);border-top-color:#0a0a14;border-radius:50%;animation:spin .6s linear infinite;vertical-align:middle}
+.error-box{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);border-radius:10px;padding:10px 14px;color:#fca5a5;font-size:13px;margin-top:10px;display:none}
+@keyframes spin{to{transform:rotate(360deg)}}
+@keyframes pop{0%{transform:scale(.5);opacity:0}70%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="card">
+  <div class="icon-wrap">✅</div>
+  <h1>Mark Attendance</h1>
+  <p class="sub">Enter your Employee ID to mark attendance</p>
+
+  <div class="training-box" id="trainingBox">
+    <div class="spinner" style="border-top-color:var(--teal);border-color:rgba(0,201,177,.2)"></div>
+  </div>
+
+  <div id="formSection" style="display:none">
+    <div style="margin-bottom:16px">
+      <label>Your Employee ID</label>
+      <input type="text" id="empId" placeholder="EMP001" maxlength="10" autocomplete="off" oninput="onIdInput(this)">
+      <div class="emp-preview" id="empPreview">
+        <div class="emp-name" id="prevName"></div>
+        <div class="emp-info" id="prevInfo"></div>
+      </div>
+      <div class="error-box" id="empError"></div>
+    </div>
+    <button class="btn" id="markBtn" onclick="markAttendance()">Mark My Attendance ✓</button>
+  </div>
+
+  <div class="result" id="resultDiv">
+    <div class="result-icon" id="rIcon"></div>
+    <div class="result-title" id="rTitle"></div>
+    <div class="result-msg" id="rMsg"></div>
+    <div id="rEmpCard"></div>
+    <button class="btn-reset" onclick="resetForm()">← Mark Another Person</button>
+  </div>
+</div>
+
+<script>
+const params = new URLSearchParams(location.search);
+const tid = params.get('tid') || '';
+let trainingData = null, empData = null, lookupTimer = null;
+
+window.addEventListener('load', async () => {
+  if (!tid) { showTrainingBox('<span style="color:#ef4444">❌ Invalid QR — no training ID</span>',''); return; }
+
+  // Demo mode
+  if (CONFIG.API_URL.includes('YOUR_DEPLOYMENT_ID')) {
+    const demos = {
+      'TRN2025001':{ Title:'Advanced Cardiac Life Support', Department:'Cardiology', StartDate:'2025-01-10', Venue:'Skills Lab', Status:'Active' }
+    };
+    trainingData = demos[tid] || { Title:'Demo Training', Department:'Demo Dept', StartDate:new Date().toISOString().split('T')[0], Venue:'Demo Venue', Status:'Active' };
+    showTrainingBox(trainingData.Title, `${trainingData.Department} · ${trainingData.Venue} · ${trainingData.StartDate}`);
+    if (trainingData.Status === 'Active') document.getElementById('formSection').style.display='block';
+    else showTrainingBox(trainingData.Title+' <span style="color:#ef4444">(Not Active)</span>', trainingData.Department);
+    document.getElementById('empId').focus();
+    return;
+  }
+
+  const res = await API.call('getTraining', { trainingId: tid });
+  if (!res || !res.data) { showTrainingBox('<span style="color:#ef4444">Training not found</span>',''); return; }
+  trainingData = res.data;
+  showTrainingBox(trainingData.Title, `${trainingData.Department} · ${trainingData.Venue} · ${trainingData.StartDate}`);
+  if (trainingData.Status !== 'Active') {
+    showTrainingBox(trainingData.Title, `<span style="color:#ef4444">⚠ Attendance not open (${trainingData.Status})</span>`);
+  } else {
+    document.getElementById('formSection').style.display = 'block';
+    document.getElementById('empId').focus();
+  }
+});
+
+function showTrainingBox(name, meta) {
+  document.getElementById('trainingBox').innerHTML = `<div class="t-name">${name}</div><div class="t-meta">${meta}</div>`;
+}
+
+function onIdInput(el) {
+  const id = el.value.trim().toUpperCase();
+  el.value = id;
+  document.getElementById('empError').style.display = 'none';
+  document.getElementById('empPreview').style.display = 'none';
+  empData = null;
+  clearTimeout(lookupTimer);
+  if (id.length >= 3) lookupTimer = setTimeout(() => lookupEmp(id), 500);
+}
+
+async function lookupEmp(id) {
+  if (CONFIG.API_URL.includes('YOUR_DEPLOYMENT_ID')) {
+    const demos = { EMP001:{Name:'Ravi Kumar',Designation:'Nurse',Department:'Emergency'}, EMP002:{Name:'Priya Nair',Designation:'Senior Nurse',Department:'Emergency'}, EMP007:{Name:'Arun T.',Designation:'Cardiologist',Department:'Cardiology'} };
+    empData = demos[id] || null;
+  } else {
+    const res = await API.call('lookupEmployee', { empId: id });
+    empData = res && res.data ? res.data : null;
+  }
+  const prev = document.getElementById('empPreview');
+  if (empData) {
+    prev.style.display = 'block';
+    document.getElementById('prevName').textContent = empData.Name;
+    document.getElementById('prevInfo').textContent = `${empData.Designation} · ${empData.Department}`;
+    prev.style.borderColor = 'rgba(0,201,177,.3)';
+  } else {
+    prev.style.display = 'none';
+  }
+}
+
+async function markAttendance() {
+  const id = document.getElementById('empId').value.trim().toUpperCase();
+  if (!id) return showEmpError('Please enter your Employee ID.');
+
+  const btn = document.getElementById('markBtn');
+  btn.disabled = true; btn.innerHTML = '<span class="spinner"></span> Marking...';
+
+  // Demo mode
+  if (CONFIG.API_URL.includes('YOUR_DEPLOYMENT_ID')) {
+    await new Promise(r => setTimeout(r, 800));
+    if (!empData) { btn.disabled=false; btn.textContent='Mark My Attendance ✓'; return showEmpError('Employee ID not found in system.'); }
+    showResult(true, '✅', 'Attendance Marked!', `Welcome, ${empData.Name}!`, empData);
+    return;
+  }
+
+  const res = await API.call('markAttendance', { trainingId: tid, employeeId: id });
+  btn.disabled = false; btn.textContent = 'Mark My Attendance ✓';
+  if (res.success) showResult(true,'✅','Attendance Marked!',res.message,res.employee);
+  else { showEmpError(res.message); }
+}
+
+function showEmpError(msg) {
+  const el = document.getElementById('empError');
+  el.textContent = msg; el.style.display = 'block';
+  const btn = document.getElementById('markBtn');
+  btn.disabled = false; btn.textContent = 'Mark My Attendance ✓';
+}
+
+function showResult(ok, icon, title, msg, emp) {
+  document.getElementById('formSection').style.display = 'none';
+  const rd = document.getElementById('resultDiv');
+  rd.style.display = 'block';
+  document.getElementById('rIcon').textContent = icon;
+  document.getElementById('rTitle').textContent = title;
+  document.getElementById('rMsg').textContent = msg;
+  if (emp && ok) {
+    document.getElementById('rEmpCard').innerHTML = `<div class="emp-card">
+      <div class="row"><span>Name</span><span>${emp.Name||emp.name||''}</span></div>
+      <div class="row"><span>Department</span><span>${emp.Department||emp.dept||''}</span></div>
+      <div class="row"><span>Designation</span><span>${emp.Designation||emp.desig||''}</span></div>
+    </div>`;
+  }
+}
+
+function resetForm() {
+  document.getElementById('resultDiv').style.display = 'none';
+  document.getElementById('formSection').style.display = 'block';
+  document.getElementById('empId').value = '';
+  document.getElementById('empPreview').style.display = 'none';
+  document.getElementById('empError').style.display = 'none';
+  empData = null;
+  document.getElementById('empId').focus();
+}
+</script>
+</body>
+</html>
