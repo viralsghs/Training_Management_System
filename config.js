@@ -5,7 +5,7 @@
 
 const CONFIG = {
   // ⚠️ REPLACE THIS with your deployed Google Apps Script Web App URL
-  API_URL: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbxdvWqe5qTvRS_9_TolrpozlyN5hTuMn8i6ZBaDpa0waOM7Wv_aaflb6DSTa5wYdL7s/exec',
 
   APP_NAME: 'MedTrain',
   HOSPITAL_NAME: 'Hospital Training Portal',
