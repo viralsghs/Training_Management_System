@@ -6,7 +6,7 @@
 const CONFIG = {
   // ⚠️  After deploying Google Apps Script, replace the URL below.
   // Leave as-is to run in Demo Mode (no backend needed).
-  API_URL: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
+  API_URL: 'https://script.google.com/macros/s/AKfycbxdvWqe5qTvRS_9_TolrpozlyN5hTuMn8i6ZBaDpa0waOM7Wv_aaflb6DSTa5wYdL7s/exec',
 
   APP_NAME:      'MedTrain',
   HOSPITAL_NAME: 'Hospital Training Portal',
