@@ -49,7 +49,7 @@ const Shell = {
 
     const html = `
       <div class="sidebar-brand">
-        <img src="${CONFIG.logoPath}" alt="MAH" style="height:36px;width:auto;filter:brightness(0) invert(1);opacity:.88;flex-shrink:0" onerror="this.style.display='none'">
+        <img src="${CONFIG.logoPath}" alt="MAH" style="height:36px;width:auto;filter:none;background:white;padding:2px 5px;border-radius:6px;flex-shrink:0" onerror="this.style.display='none'">
         <div>
           <div class="sidebar-brand-name">Training System</div>
           <div class="sidebar-brand-ver">MAH · ${u.department === 'ALL' ? 'All Depts' : u.department}</div>
