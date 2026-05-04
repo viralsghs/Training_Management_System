@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Training System — Marengo Asia Hospitals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<!-- config.js FIRST — defines Session, CONFIG, Paths, etc. -->
+<script src="js/config.js"></script>
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --navy:   #003399;
+  --navy2:  #0044bb;
+  --blue:   #0066ff;
+  --cyan:   #00b4d8;
+  --ink:    #0a0e1a;
+  --ink2:   #111827;
+  --surf:   rgba(255,255,255,.06);
+  --sbdr:   rgba(255,255,255,.11);
+  --text:   #e8edf5;
+  --text2:  #94a3b8;
+  --text3:  #64748b;
+  --danger: #ef4444;
+  --green:  #10b981;
+  --gold:   #f59e0b;
+  --white:  #fff;
+}
+
+html, body { height: 100%; }
+body {
+  font-family: 'DM Sans', sans-serif;
+  background: var(--ink);
+  color: var(--text);
+  overflow: hidden;
+}
+
+/* ── BACKGROUND ── */
+.bg {
+  position: fixed; inset: 0; z-index: 0;
+  background:
+    radial-gradient(ellipse 70% 55% at 15% 25%, rgba(0,51,153,.18) 0%, transparent 65%),
+    radial-gradient(ellipse 55% 70% at 85% 75%, rgba(0,180,216,.10) 0%, transparent 65%),
+    radial-gradient(ellipse 40% 40% at 50% 50%, rgba(0,102,255,.06) 0%, transparent 70%),
+    var(--ink);
+}
+.bg-grid {
+  position: fixed; inset: 0; z-index: 0;
+  background-image:
+    linear-gradient(rgba(255,255,255,.022) 1px, transparent 1px),
+    linear-gradient(90deg, rgba(255,255,255,.022) 1px, transparent 1px);
+  background-size: 52px 52px;
+}
+.orb {
+  position: fixed; border-radius: 50%; filter: blur(90px);
+  pointer-events: none; z-index: 0;
+}
+.o1 { width:450px;height:450px;background:rgba(0,51,153,.1);top:-120px;left:-80px;animation:fl 9s ease-in-out infinite; }
+.o2 { width:520px;height:520px;background:rgba(0,180,216,.07);bottom:-160px;right:-120px;animation:fl 11s ease-in-out infinite reverse; }
+.o3 { width:280px;height:280px;background:rgba(0,102,255,.06);top:35%;left:45%;animation:fl 7s ease-in-out infinite 2s; }
+@keyframes fl { 0%,100%{transform:translate(0,0)} 50%{transform:translate(18px,-18px)} }
+
+/* ── LAYOUT ── */
+.page {
+  position: relative; z-index: 1;
+  min-height: 100vh;
+  display: grid;
+  grid-template-columns: 1fr 470px;
+}
+
+/* ── LEFT PANEL ── */
+.lp {
+  display: flex; flex-direction: column;
+  justify-content: space-between;
+  padding: 44px 56px;
+}
+
+/* Hospital logo + name */
+.brand {
+  display: flex; align-items: center; gap: 14px;
+}
+.brand-logo {
+  height: 52px; width: auto;
+  filter: brightness(0) invert(1);
+  opacity: .9;
+}
+.brand-text { display: flex; flex-direction: column; }
+.brand-name {
+  font-family: 'Syne', sans-serif; font-size: 17px; font-weight: 700;
+  color: var(--white); line-height: 1.2;
+}
+.brand-tag {
+  font-size: 10px; color: var(--cyan);
+  text-transform: uppercase; letter-spacing: 1.5px; font-weight: 500;
+}
+
+/* Hero */
+.hero { flex: 1; display: flex; flex-direction: column; justify-content: center; padding: 48px 0; }
+.pill {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(0,180,216,.12); border: 1px solid rgba(0,180,216,.28);
+  color: var(--cyan); padding: 6px 14px; border-radius: 100px;
+  font-size: 11px; font-weight: 600; letter-spacing: .6px; text-transform: uppercase;
+  margin-bottom: 24px; width: fit-content;
+}
+.pill::before { content:''; width:6px;height:6px;background:var(--cyan);border-radius:50%; }
+.hero h1 {
+  font-family: 'Syne', sans-serif;
+  font-size: clamp(32px, 3.8vw, 52px); font-weight: 800; line-height: 1.1;
+  margin-bottom: 18px;
+}
+.hero h1 span { color: var(--cyan); }
+.hero p {
+  font-size: 16px; color: var(--text2); line-height: 1.72;
+  max-width: 460px; margin-bottom: 36px;
+}
+.feats { display: flex; flex-direction: column; gap: 11px; }
+.feat {
+  display: flex; align-items: center; gap: 13px;
+  padding: 13px 16px; border-radius: 11px;
+  background: var(--surf); border: 1px solid var(--sbdr);
+  font-size: 13.5px; color: var(--text2); transition: all .22s;
+}
+.feat:hover { background: rgba(255,255,255,.09); color: var(--text); }
+.feat-ic { font-size: 18px; }
+
+/* Stats */
+.stats { display: flex; gap: 36px; }
+.sn {
+  font-family: 'Syne', sans-serif; font-size: 26px; font-weight: 800;
+  background: linear-gradient(135deg, var(--cyan), var(--navy2));
+  -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+}
+.sl { font-size: 11px; color: var(--text3); margin-top: 2px; }
+
+/* ── RIGHT PANEL ── */
+.rp {
+  display: flex; align-items: center; justify-content: center;
+  padding: 28px;
+  background: rgba(255,255,255,.025);
+  border-left: 1px solid var(--sbdr);
+  backdrop-filter: blur(24px);
+}
+
+/* Login card */
+.card {
+  width: 100%; max-width: 400px;
+  background: rgba(255,255,255,.045);
+  border: 1px solid var(--sbdr); border-radius: 22px;
+  padding: 34px 30px;
+  backdrop-filter: blur(40px);
+  box-shadow: 0 28px 60px rgba(0,0,0,.45), inset 0 1px 0 rgba(255,255,255,.09);
+}
+
+/* Card header with logo */
+.card-head { text-align: center; margin-bottom: 26px; }
+.card-logo {
+  height: 56px; width: auto; max-width: 200px;
+  filter: brightness(0) invert(1);
+  opacity: .92; margin: 0 auto 12px; display: block;
+}
+.card-head h2 {
+  font-family: 'Syne', sans-serif; font-size: 19px; font-weight: 700;
+  margin-bottom: 4px; color: var(--white);
+}
+.card-head p { font-size: 13px; color: var(--text2); }
+
+/* Role tabs */
+.rtabs {
+  display: flex; gap: 3px; padding: 3px;
+  background: rgba(0,0,0,.25); border: 1px solid var(--sbdr);
+  border-radius: 11px; margin-bottom: 22px;
+}
+.rtab {
+  flex: 1; padding: 8px 6px; border-radius: 9px;
+  text-align: center; font-size: 12px; font-weight: 500;
+  cursor: pointer; transition: all .18s; color: var(--text2);
+  border: none; background: none; font-family: inherit;
+}
+.rtab.on {
+  background: linear-gradient(135deg, var(--navy), var(--blue));
+  color: var(--white); font-weight: 600;
+  box-shadow: 0 3px 12px rgba(0,51,153,.4);
+}
+
+/* Error */
+.err {
+  display: none;
+  padding: 11px 14px; margin-bottom: 14px;
+  background: rgba(239,68,68,.12); border: 1px solid rgba(239,68,68,.35);
+  border-radius: 10px; color: #fca5a5; font-size: 13px;
+  text-align: center; line-height: 1.5;
+}
+.err.show { display: block; }
+
+/* Form */
+.fg { margin-bottom: 16px; }
+.fg label {
+  display: block; font-size: 11px; font-weight: 600; color: var(--text2);
+  margin-bottom: 6px; letter-spacing: .4px; text-transform: uppercase;
+}
+.fg input {
+  width: 100%; padding: 12px 15px;
+  background: rgba(255,255,255,.07); border: 1.5px solid var(--sbdr);
+  border-radius: 10px; color: var(--text); font-size: 14px;
+  font-family: inherit; outline: none; transition: all .18s;
+}
+.fg input:focus {
+  border-color: var(--cyan);
+  background: rgba(0,180,216,.07);
+  box-shadow: 0 0 0 3px rgba(0,180,216,.13);
+}
+.fg input::placeholder { color: var(--text3); }
+
+/* Login button */
+.btn-login {
+  width: 100%; padding: 13px;
+  background: linear-gradient(135deg, var(--navy), var(--blue));
+  border: none; border-radius: 11px; color: var(--white);
+  font-size: 15px; font-weight: 700; font-family: 'Syne', sans-serif;
+  cursor: pointer; transition: all .22s; letter-spacing: .3px;
+  box-shadow: 0 6px 22px rgba(0,51,153,.4);
+  display: flex; align-items: center; justify-content: center; gap: 9px;
+}
+.btn-login:hover:not(:disabled) {
+  transform: translateY(-2px); box-shadow: 0 10px 28px rgba(0,51,153,.5);
+}
+.btn-login:disabled { opacity: .7; cursor: not-allowed; transform: none !important; }
+
+/* Demo section */
+.demo-sec {
+  margin-top: 18px; padding-top: 16px;
+  border-top: 1px solid var(--sbdr);
+}
+.demo-lbl {
+  font-size: 10px; color: var(--text3); text-align: center;
+  margin-bottom: 9px; text-transform: uppercase; letter-spacing: .6px;
+}
+.demo-list { display: flex; flex-direction: column; gap: 5px; }
+.demo-btn {
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 8px 12px;
+  background: rgba(255,255,255,.04); border: 1px solid var(--sbdr);
+  border-radius: 8px; cursor: pointer; font-size: 12px; color: var(--text2);
+  transition: all .18s; font-family: inherit; text-align: left;
+}
+.demo-btn:hover { background: rgba(255,255,255,.09); color: var(--text); border-color: rgba(255,255,255,.2); }
+.rbadge {
+  padding: 2px 7px; border-radius: 4px;
+  font-size: 9px; font-weight: 700; text-transform: uppercase; letter-spacing: .4px;
+}
+.rb-sa { background: rgba(245,158,11,.18); color: var(--gold); }
+.rb-or { background: rgba(0,180,216,.18);  color: var(--cyan); }
+.rb-hr { background: rgba(16,185,129,.18); color: var(--green); }
+
+/* Spinner */
+.spin {
+  width: 16px; height: 16px;
+  border: 2px solid rgba(255,255,255,.3); border-top-color: var(--white);
+  border-radius: 50%; animation: ro .65s linear infinite; flex-shrink: 0;
+}
+@keyframes ro { to { transform: rotate(360deg); } }
+
+/* Responsive */
+@media (max-width: 860px) {
+  body { overflow: auto; }
+  .page { grid-template-columns: 1fr; }
+  .lp { display: none; }
+  .rp { min-height: 100vh; border-left: none; }
+}
+</style>
+</head>
+<body>
+
+<div class="bg"></div>
+<div class="bg-grid"></div>
+<div class="orb o1"></div>
+<div class="orb o2"></div>
+<div class="orb o3"></div>
+
+<div class="page">
+
+  <!-- ── LEFT: HERO ── -->
+  <div class="lp">
+    <div class="brand">
+      <img class="brand-logo" src="assets/logo.jpg" alt="Marengo Asia Hospitals"
+           onerror="this.style.display='none';document.getElementById('brand-fallback').style.display='flex'">
+      <div id="brand-fallback" style="display:none;width:44px;height:44px;border-radius:12px;background:linear-gradient(135deg,#003399,#0066ff);align-items:center;justify-content:center;font-size:20px">🏥</div>
+      <div class="brand-text">
+        <div class="brand-name">Marengo Asia Hospitals</div>
+        <div class="brand-tag">Humane by Practice</div>
+      </div>
+    </div>
+
+    <div class="hero">
+      <div class="pill">Hospital Training System</div>
+      <h1>Training made <span>smarter,</span><br>simpler.</h1>
+      <p>Digital training management with QR attendance, live feedback, pre/post assessments — built for Marengo Asia Hospitals.</p>
+      <div class="feats">
+        <div class="feat"><span class="feat-ic">📲</span> QR code attendance — employees scan, no login needed</div>
+        <div class="feat"><span class="feat-ic">📝</span> Live feedback &amp; assessment with instant results</div>
+        <div class="feat"><span class="feat-ic">📊</span> Excel reports, certificates &amp; auto HR notifications</div>
+      </div>
+    </div>
+
+    <div class="stats">
+      <div><div class="sn">100%</div><div class="sl">Free to run</div></div>
+      <div><div class="sn">3</div><div class="sl">Role types</div></div>
+      <div><div class="sn">4</div><div class="sl">QR types</div></div>
+    </div>
+  </div>
+
+  <!-- ── RIGHT: LOGIN ── -->
+  <div class="rp">
+    <div class="card">
+
+      <div class="card-head">
+        <img class="card-logo" src="assets/logo.jpg" alt="Marengo Asia Hospitals"
+             onerror="this.style.display='none'">
+        <h2>Welcome Back</h2>
+        <p>Sign in to your training portal</p>
+      </div>
+
+      <div class="rtabs" id="rtabs">
+        <button class="rtab on"  onclick="setRole(this)">⚡ Super Admin</button>
+        <button class="rtab"     onclick="setRole(this)">📋 Organiser</button>
+        <button class="rtab"     onclick="setRole(this)">👥 HR</button>
+      </div>
+
+      <div class="err" id="errBox"></div>
+
+      <div class="fg">
+        <label>Email Address</label>
+        <input type="email" id="em" placeholder="you@hospital.com"
+               autocomplete="email" onkeydown="if(event.key==='Enter')go()">
+      </div>
+      <div class="fg">
+        <label>Password</label>
+        <input type="password" id="pw" placeholder="••••••••"
+               autocomplete="current-password" onkeydown="if(event.key==='Enter')go()">
+      </div>
+
+      <button class="btn-login" id="loginBtn" onclick="go()">
+        <span id="btnTxt">Sign In</span>
+        <span id="btnArr">→</span>
+      </button>
+
+      <!-- Demo credentials -->
+      <div class="demo-sec">
+        <div class="demo-lbl">Demo Accounts — Click to fill</div>
+        <div class="demo-list">
+          <button class="demo-btn" onclick="fill('admin@medtrain.demo','Admin@123',0)">
+            <span>admin@medtrain.demo / Admin@123</span>
+            <span class="rbadge rb-sa">Super Admin</span>
+          </button>
+          <button class="demo-btn" onclick="fill('organiser@medtrain.demo','Demo@123',1)">
+            <span>organiser@medtrain.demo / Demo@123</span>
+            <span class="rbadge rb-or">Organiser</span>
+          </button>
+          <button class="demo-btn" onclick="fill('hr@medtrain.demo','Demo@123',2)">
+            <span>hr@medtrain.demo / Demo@123</span>
+            <span class="rbadge rb-hr">HR</span>
+          </button>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Demo accounts (no backend required) ─────────────────────
+const DEMOS = {
+  'admin@medtrain.demo':     { pass:'Admin@123', user:{ id:'DEMO001', name:'Super Admin', email:'admin@medtrain.demo',     role:'superadmin', department:'ALL'       }},
+  'organiser@medtrain.demo': { pass:'Demo@123',  user:{ id:'DEMO002', name:'Dr. Priya Sharma', email:'organiser@medtrain.demo', role:'organiser',  department:'Cardiology' }},
+  'hr@medtrain.demo':        { pass:'Demo@123',  user:{ id:'DEMO003', name:'Rahul Mehta',  email:'hr@medtrain.demo',        role:'hr',         department:'HR'        }},
+};
+
+// ── UI helpers ───────────────────────────────────────────────
+function setRole(el) {
+  document.querySelectorAll('.rtab').forEach(t => t.classList.remove('on'));
+  el.classList.add('on');
+}
+
+function fill(email, pass, tabIdx) {
+  document.getElementById('em').value = email;
+  document.getElementById('pw').value = pass;
+  const tabs = document.querySelectorAll('.rtab');
+  tabs.forEach((t, i) => t.classList.toggle('on', i === tabIdx));
+  clearErr();
+}
+
+function showErr(msg) {
+  const el = document.getElementById('errBox');
+  el.textContent = msg;
+  el.className = 'err show';
+}
+function clearErr() {
+  document.getElementById('errBox').className = 'err';
+}
+
+function busy(on) {
+  const btn = document.getElementById('loginBtn');
+  const txt = document.getElementById('btnTxt');
+  const arr = document.getElementById('btnArr');
+  btn.disabled = on;
+  if (on) {
+    txt.innerHTML = '<span class="spin"></span>';
+    arr.textContent = 'Signing in…';
+  } else {
+    txt.textContent = 'Sign In';
+    arr.textContent = '→';
+  }
+}
+
+// ── Main login logic ─────────────────────────────────────────
+async function go() {
+  clearErr();
+
+  const email = (document.getElementById('em').value || '').trim().toLowerCase();
+  const pass  = (document.getElementById('pw').value || '').trim();
+
+  if (!email) { showErr('Please enter your email address.'); return; }
+  if (!pass)  { showErr('Please enter your password.');     return; }
+
+  busy(true);
+
+  // 1. Check demo accounts first (works without any backend)
+  const demo = DEMOS[email];
+  if (demo) {
+    await delay(350); // brief pause so spinner is visible
+    if (demo.pass === pass) {
+      Session.set(demo.user);
+      window.location.href = 'pages/dashboard.html';
+      return; // do NOT call busy(false) — page is navigating
+    } else {
+      busy(false);
+      showErr('Wrong password for this demo account.\nCheck the credentials shown above.');
+      return;
+    }
+  }
+
+  // 2. If API not configured, cannot log in with real credentials
+  if (CONFIG.isDemo) {
+    busy(false);
+    showErr('Real login requires Google Apps Script to be set up.\nUse a demo account above to explore the app.');
+    return;
+  }
+
+  // 3. Real API login
+  try {
+    const res = await API.call('login', { email, password: pass });
+    if (res && res.success && res.user) {
+      Session.set(res.user);
+      window.location.href = 'pages/dashboard.html';
+      // do NOT call busy(false) — navigating away
+    } else {
+      busy(false);
+      showErr(res?.message || 'Invalid email or password. Please try again.');
+    }
+  } catch (e) {
+    busy(false);
+    showErr('Connection failed. Check your internet and try again.');
+  }
+}
+
+function delay(ms) { return new Promise(r => setTimeout(r, ms)); }
+
+// ── If already logged in, skip login page ───────────────────
+(function () {
+  const user = Session.get();
+  if (user && user.id) {
+    window.location.href = 'pages/dashboard.html';
+  }
+})();
+</script>
+
+</body>
+</html>
