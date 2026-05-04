@@ -15,7 +15,7 @@ const CONFIG = {
 };
 
 // Is real API connected?
-CONFIG.isDemo = CONFIG.API_URL.includes('19pVfAm94j6bW6BKyW_XGnLOpqr9o_WQcnMwlX4gZQh0');
+CONFIG.isDemo = CONFIG.API_URL.includes('AKfycbxdvWqe5qTvRS_9_TolrpozlyN5hTuMn8i6ZBaDpa0waOM7Wv_aaflb6DSTa5wYdL7s');
 
 // ─── Logo path helper (works from any subfolder) ───────────────
 CONFIG.logoPath = (function () {
