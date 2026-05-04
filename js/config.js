@@ -6,7 +6,7 @@
 const CONFIG = {
   // ─── Replace with your Google Apps Script Web App URL ───────
   // Leave as-is to run in Demo Mode (no backend required)
-  API_URL: 'https://script.google.com/macros/s/AKfycbxdvWqe5qTvRS_9_TolrpozlyN5hTuMn8i6ZBaDpa0waOM7Wv_aaflb6DSTa5wYdL7s/exec',
+  API_URL: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
 
   APP_NAME:      'Training System',
   HOSPITAL_NAME: 'Marengo Asia Hospitals',
@@ -78,24 +78,52 @@ const Session = {
 };
 
 // ═══════════════════════════════════════════════════════════════
-//  API  (GET fetch — Google Apps Script compatible)
+//  API  — Google Apps Script compatible (JSONP to avoid CORS)
+//  Google Apps Script redirects fetch() calls which breaks CORS.
+//  JSONP uses a <script> tag which is not subject to CORS rules.
 // ═══════════════════════════════════════════════════════════════
 const API = {
-  async call(action, data = {}) {
-    try {
-      const flat = {};
+  _cbId: 0,
+
+  call(action, data = {}) {
+    return new Promise((resolve, reject) => {
+      const cbName = '__gascb_' + (++this._cbId) + '_' + Date.now();
+      const timeout = setTimeout(() => {
+        delete window[cbName];
+        const s = document.getElementById(cbName);
+        if (s) s.remove();
+        reject(new Error('Request timed out after 15 seconds'));
+      }, 15000);
+
+      window[cbName] = (result) => {
+        clearTimeout(timeout);
+        delete window[cbName];
+        const s = document.getElementById(cbName);
+        if (s) s.remove();
+        resolve(result);
+      };
+
+      const flat = { action, callback: cbName };
       for (const [k, v] of Object.entries(data)) {
         flat[k] = typeof v === 'object' ? JSON.stringify(v) : String(v);
       }
-      const qs  = new URLSearchParams({ action, ...flat });
+      const qs  = new URLSearchParams(flat);
       const url = `${CONFIG.API_URL}?${qs}`;
-      const res = await fetch(url, { redirect: 'follow' });
-      if (!res.ok) throw new Error(`HTTP ${res.status}`);
-      return await res.json();
-    } catch (e) {
+
+      const script = document.createElement('script');
+      script.id  = cbName;
+      script.src = url;
+      script.onerror = () => {
+        clearTimeout(timeout);
+        delete window[cbName];
+        script.remove();
+        reject(new Error('Network error — check Apps Script URL'));
+      };
+      document.head.appendChild(script);
+    }).catch(e => {
       console.error('[API]', action, e);
-      return { success: false, message: 'Connection error: ' + e.message };
-    }
+      return { success: false, message: e.message };
+    });
   },
 };
 
