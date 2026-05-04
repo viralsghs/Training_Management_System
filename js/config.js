@@ -6,7 +6,7 @@
 const CONFIG = {
   // ─── Replace with your Google Apps Script Web App URL ───────
   // Leave as-is to run in Demo Mode (no backend required)
-  API_URL: 'https://script.google.com/macros/s/AKfycbw_REEYFcpbNDNm82tSTSOK26Rbpbxl37IAJpoj6G2jVvEdb_25Ll3ufH54MuBcgwOQ/exec'',
+  API_URL: 'https://script.google.com/macros/s/AKfycbw_REEYFcpbNDNm82tSTSOK26Rbpbxl37IAJpoj6G2jVvEdb_25Ll3ufH54MuBcgwOQ/exec',
 
   APP_NAME:      'Training System',
   HOSPITAL_NAME: 'Marengo Asia Hospitals',
@@ -15,7 +15,7 @@ const CONFIG = {
 };
 
 // Is real API connected?
-CONFIG.isDemo = CONFIG.API_URL.includes('AKfycbw_REEYFcpbNDNm82tSTSOK26Rbpbxl37IAJpoj6G2jVvEdb_25Ll3ufH54MuBcgwOQ');
+CONFIG.isDemo = CONFIG.API_URL.includes('https://script.google.com/macros/s/AKfycbw_REEYFcpbNDNm82tSTSOK26Rbpbxl37IAJpoj6G2jVvEdb_25Ll3ufH54MuBcgwOQ/exec');
 
 // ─── Logo path helper (works from any subfolder) ───────────────
 CONFIG.logoPath = (function () {
