@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Users & Roles — MAH Training System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/app.css">
+<script src="../js/config.js"></script>
+<script src="../js/app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="topbar" id="topbar"></div>
+    <main class="main" id="main">
+      <div class="loader-full"><span class="spinner"></span><span style="margin-left:10px;color:var(--text2)">Loading users...</span></div>
+    </main>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+let allUsers = [], allDepts = [], currentUser = null;
+
+const DEMO_USERS = [
+  { id:'DEMO001', name:'Dr. Admin', email:'admin@Training System.demo', role:'superadmin', department:'ALL', active:'TRUE' },
+  { id:'DEMO002', name:'Dr. Priya Sharma', email:'organiser@Training System.demo', role:'organiser', department:'Cardiology', active:'TRUE' },
+  { id:'DEMO003', name:'Rahul HR', email:'hr@Training System.demo', role:'hr', department:'HR', active:'TRUE' },
+  { id:'DEMO004', name:'Dr. Meena Patel', email:'meena.org@Training System.demo', role:'organiser', department:'Nursing', active:'TRUE' },
+];
+
+document.addEventListener('DOMContentLoaded', async () => {
+  currentUser = Shell.init(['superadmin']);
+  if (!currentUser) return;
+  Shell.setTopbarTitle('Users & Roles');
+  Shell.setTopbarActions(`<button class="btn btn-primary" onclick="openForm()">＋ Add User</button>`);
+  allDepts = await SmartAPI.getDepartments();
+  if (DEMO.isDemoMode()) { allUsers = [...DEMO_USERS]; renderPage(); return; }
+  const res = await API.call('getUsers');
+  allUsers = res.data || [];
+  renderPage();
+});
+
+const roleConfig = {
+  superadmin: { label:'Super Admin', color:'var(--gold)', bg:'var(--goldfade)', icon:'⚡', desc:'Full system access' },
+  organiser:  { label:'Organiser',   color:'var(--teal)', bg:'var(--tealfade)', icon:'📋', desc:'Dept training management' },
+  hr:         { label:'HR Manager',  color:'#a78bfa',    bg:'var(--violfade)', icon:'👥', desc:'View & schedule trainings' },
+};
+
+function renderPage() {
+  document.getElementById('main').innerHTML = `
+    <div class="page-header">
+      <div>
+        <div class="page-title">Users & Roles</div>
+        <div class="page-sub">Manage who can access the training portal</div>
+      </div>
+      <button class="btn btn-primary btn-lg" onclick="openForm()">＋ Add User</button>
+    </div>
+
+    <!-- Role overview cards -->
+    <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:24px" class="role-cards">
+      ${Object.entries(roleConfig).map(([role,cfg]) => {
+        const cnt = allUsers.filter(u => u.role===role && u.active!=='FALSE').length;
+        return `<div class="card" style="border-top:3px solid ${cfg.color};cursor:pointer" onclick="filterRole('${role}')">
+          <div style="font-size:28px;margin-bottom:8px">${cfg.icon}</div>
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:${cfg.color};margin-bottom:2px">${cfg.label}</div>
+          <div style="font-size:12px;color:var(--text2);margin-bottom:12px">${cfg.desc}</div>
+          <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800">${cnt}</div>
+          <div style="font-size:11px;color:var(--text2)">active users</div>
+        </div>`;
+      }).join('')}
+    </div>
+
+    <div class="card" style="padding:0;overflow:hidden">
+      <div style="padding:16px 20px;border-bottom:1px solid var(--border);display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:10px">
+        <div style="display:flex;gap:8px;flex-wrap:wrap" id="roleChips">
+          <button class="chip chip-active" onclick="filterRole('',this)">All Users</button>
+          ${Object.entries(roleConfig).map(([role,cfg]) =>
+            `<button class="chip" onclick="filterRole('${role}',this)" style="--chip-color:${cfg.color}">${cfg.icon} ${cfg.label}</button>`
+          ).join('')}
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>User</th><th>Email</th><th>Role</th><th>Department</th><th>Status</th><th>Actions</th></tr></thead>
+          <tbody id="userBody">${renderRows(allUsers.filter(u=>u.active!=='FALSE'))}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Permissions reference -->
+    <div class="card" style="margin-top:20px">
+      <div class="card-title">🔐 Role Permissions Reference</div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Feature</th><th>⚡ Super Admin</th><th>📋 Organiser</th><th>👥 HR</th></tr></thead>
+          <tbody>
+            ${[
+              ['Employee Master', '✅', '❌', '❌'],
+              ['User Management', '✅', '❌', '❌'],
+              ['Departments', '✅', '❌', '❌'],
+              ['Feedback Templates', '✅', '❌', '❌'],
+              ['Create Training', '✅', '✅ (own dept)', '✅'],
+              ['Activate / Complete Training', '✅', '✅ (own)', '✅ (own)'],
+              ['Generate QR Codes', '✅', '✅', '✅'],
+              ['Build Exam Questions', '✅', '✅', '❌'],
+              ['Upload Photos', '✅', '✅', '❌'],
+              ['Download Reports', '✅', '✅', '✅'],
+              ['View All Trainings', '✅', '❌ (own dept)', '✅'],
+              ['Receive HR Email', '❌', '❌', '✅'],
+              ['Generate Certificates', '✅', '✅', '❌'],
+            ].map(row => `<tr>${row.map((c,i)=>`<td style="${i>0?'text-align:center;font-size:16px':''}">${c}</td>`).join('')}</tr>`).join('')}
+          </tbody>
+        </table>
+      </div>
+    </div>`;
+}
+
+let roleFilter = '';
+function filterRole(role, el) {
+  roleFilter = role;
+  if (el) { document.querySelectorAll('.chip').forEach(c=>c.classList.remove('chip-active')); el.classList.add('chip-active'); }
+  const list = allUsers.filter(u => u.active !== 'FALSE' && (!role || u.role === role));
+  document.getElementById('userBody').innerHTML = renderRows(list);
+}
+
+function renderRows(list) {
+  if (!list.length) return `<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">👤</div><div class="empty-title">No users found</div></div></td></tr>`;
+  return list.map(u => {
+    const cfg = roleConfig[u.role] || { label: u.role, color:'var(--text2)', icon:'👤' };
+    return `<tr>
+      <td>
+        <div style="display:flex;align-items:center;gap:10px">
+          <div style="width:34px;height:34px;border-radius:10px;background:${cfg.bg||'var(--surf3)'};border:1px solid ${cfg.color}33;display:flex;align-items:center;justify-content:center;font-weight:700;color:${cfg.color};font-size:13px;flex-shrink:0">
+            ${(u.name||'?').charAt(0).toUpperCase()}
+          </div>
+          <div style="font-weight:600">${u.name}</div>
+        </div>
+      </td>
+      <td style="color:var(--text2);font-size:13px">${u.email}</td>
+      <td>
+        <span style="display:inline-flex;align-items:center;gap:5px;background:${cfg.bg||'var(--surf3)'};color:${cfg.color};padding:4px 10px;border-radius:8px;font-size:12px;font-weight:600">
+          ${cfg.icon} ${cfg.label}
+        </span>
+      </td>
+      <td style="color:var(--text2)">${u.department === 'ALL' ? '<span style="color:var(--teal)">All Departments</span>' : u.department}</td>
+      <td><span class="badge badge-green">Active</span></td>
+      <td>
+        <div class="btn-group">
+          <button class="btn btn-ghost btn-sm" onclick="openForm('${u.id}')">✏️ Edit</button>
+          ${u.id !== currentUser.id ? `<button class="btn btn-danger btn-sm" onclick="deactivateUser('${u.id}','${u.name}')">🗑</button>` : '<span style="font-size:11px;color:var(--text3);padding:0 6px">You</span>'}
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function openForm(userId) {
+  const u = userId ? allUsers.find(x => x.id === userId) || {} : {};
+  const v = k => u[k] || '';
+  const roleOpts = ['superadmin','organiser','hr'].map(r =>
+    `<option value="${r}" ${v('role')===r?'selected':''}>${roleConfig[r].icon} ${roleConfig[r].label}</option>`
+  ).join('');
+  const deptOpts = `<option value="ALL" ${v('department')==='ALL'?'selected':''}>All Departments</option>`
+    + allDepts.map(d => `<option value="${d.DeptName}" ${v('department')===d.DeptName?'selected':''}>${d.DeptName}</option>`).join('');
+
+  document.getElementById('modalTitle').textContent = userId ? 'Edit User' : 'Add New User';
+  document.getElementById('modalBody').innerHTML = `
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="fg2">
+      ${fi('Full Name *','uName',v('name'),'Full name')}
+      ${fi('Email Address *','uEmail',v('email'),'user@hospital.com','email')}
+    </div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="fg2">
+      ${fs('Role *','uRole',roleOpts)}
+      ${fs('Department','uDept',deptOpts)}
+    </div>
+    ${!userId
+      ? fi('Password *','uPass','','Default: Welcome@123 (user should change)','password')
+      : `<div class="fg"><label>New Password <span style="color:var(--text3);font-weight:400">(leave blank to keep current)</span></label><input type="password" id="uPass" placeholder="Enter new password to change"></div>`}
+    <div class="alert alert-info" style="margin-bottom:16px">
+      <span>ℹ</span>
+      <div>
+        <strong>Role guide:</strong><br>
+        ⚡ Super Admin — full access &nbsp;·&nbsp; 📋 Organiser — dept training management &nbsp;·&nbsp; 👥 HR — schedule & view trainings
+      </div>
+    </div>
+    <div class="btn-group" style="justify-content:flex-end;gap:10px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary btn-lg" onclick="saveUser('${userId||''}')">💾 Save User</button>
+    </div>`;
+  openModal();
+}
+
+function fi(label, id, val, ph, type='text') {
+  return `<div class="fg"><label>${label}</label><input type="${type}" id="${id}" value="${val||''}" placeholder="${ph||''}"></div>`;
+}
+function fs(label, id, opts) {
+  return `<div class="fg"><label>${label}</label><select id="${id}">${opts}</select></div>`;
+}
+function gv(id) { const e=document.getElementById(id); return e?e.value.trim():''; }
+
+async function saveUser(userId) {
+  const data = { id:userId||null, name:gv('uName'), email:gv('uEmail'), role:gv('uRole'), department:gv('uDept'), newPassword:gv('uPass')||null, password:gv('uPass')||'Welcome@123' };
+  if (!data.name || !data.email || !data.role) return Toast.show('Name, Email and Role are required.','warning');
+  if (DEMO.isDemoMode()) {
+    if (userId) {
+      const idx = DEMO_USERS.findIndex(u => u.id === userId);
+      if (idx >= 0) Object.assign(DEMO_USERS[idx], {name:data.name,email:data.email,role:data.role,department:data.department});
+    } else {
+      DEMO_USERS.push({id:'USR'+Date.now().toString().slice(-5),name:data.name,email:data.email,role:data.role,department:data.department,active:'TRUE'});
+    }
+    allUsers = [...DEMO_USERS];
+    closeModal(); Toast.show('User saved!','success'); renderPage(); return;
+  }
+  const res = await API.call('saveUser', data);
+  if (res.success) {
+    closeModal();
+    Toast.show('User saved!' + (res.defaultPassword ? ` Default password: ${res.defaultPassword}`:''),'success');
+    const r2 = await API.call('getUsers'); allUsers = r2.data||[]; renderPage();
+  } else Toast.show(res.message||'Error.','error');
+}
+
+async function deactivateUser(userId, name) {
+  if (!confirm(`Deactivate ${name}? They will no longer be able to log in.`)) return;
+  if (DEMO.isDemoMode()) {
+    const idx = DEMO_USERS.findIndex(u => u.id === userId);
+    if (idx >= 0) DEMO_USERS[idx].active = 'FALSE';
+    allUsers = DEMO_USERS.filter(u => u.active !== 'FALSE');
+    Toast.show('User deactivated.','success'); renderPage(); return;
+  }
+  const res = await API.call('deleteUser',{userId});
+  if (res.success) { Toast.show('User deactivated.','success'); const r=await API.call('getUsers'); allUsers=r.data||[]; renderPage(); }
+  else Toast.show('Error.','error');
+}
+
+function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+</script>
+<style>
+.chip{padding:6px 14px;border-radius:100px;border:1.5px solid var(--border);background:none;color:var(--text2);font-size:12px;font-weight:500;cursor:pointer;font-family:inherit;transition:all .18s;white-space:nowrap}
+.chip:hover{border-color:rgba(255,255,255,.2);color:var(--text)}
+.chip-active{background:var(--tealfade);border-color:rgba(0,201,177,.35);color:var(--teal)}
+@media(max-width:800px){.role-cards{grid-template-columns:1fr!important}.fg2{grid-template-columns:1fr!important}}
+</style>
+</body>
+</html>
