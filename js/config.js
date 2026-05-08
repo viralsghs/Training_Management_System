@@ -7,7 +7,7 @@ const CONFIG = {
   // ── Paste your Google Apps Script Web App URL here ──────────
   // Example: 'https://script.google.com/macros/s/AKfycb.../exec'
   // Leave as YOUR_DEPLOYMENT_ID to use Demo Mode (no backend)
-  API_URL: 'https://script.google.com/macros/s/AKfycbw_REEYFcpbNDNm82tSTSOK26Rbpbxl37IAJpoj6G2jVvEdb_25Ll3ufH54MuBcgwOQ/exec',
+  API_URL: 'https://script.google.com/macros/s/YOUR_DEPLOYMENT_ID/exec',
 
   APP_NAME:      'Training System',
   HOSPITAL_NAME: 'Marengo Asia Hospitals',
