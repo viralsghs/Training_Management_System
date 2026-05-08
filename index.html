@@ -1,0 +1,268 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Training System — Marengo Asia Hospitals</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<script src="js/config.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--navy:#003399;--blue:#0066ff;--cyan:#00b4d8;--ink:#0a0e1a;--ink2:#111827;
+  --surf:rgba(255,255,255,.06);--sbdr:rgba(255,255,255,.11);
+  --text:#e8edf5;--text2:#94a3b8;--text3:#64748b;
+  --red:#ef4444;--green:#10b981;--gold:#f59e0b;--white:#fff}
+html,body{height:100%;font-family:'DM Sans',Arial,sans-serif;background:var(--ink);color:var(--text)}
+body{overflow:hidden}
+.bg{position:fixed;inset:0;z-index:0;
+  background:radial-gradient(ellipse 70% 55% at 15% 25%,rgba(0,51,153,.18) 0%,transparent 65%),
+  radial-gradient(ellipse 55% 70% at 85% 75%,rgba(0,180,216,.10) 0%,transparent 65%),var(--ink)}
+.bg-grid{position:fixed;inset:0;z-index:0;
+  background-image:linear-gradient(rgba(255,255,255,.022) 1px,transparent 1px),
+  linear-gradient(90deg,rgba(255,255,255,.022) 1px,transparent 1px);background-size:52px 52px}
+.orb{position:fixed;border-radius:50%;filter:blur(90px);pointer-events:none;z-index:0}
+.o1{width:450px;height:450px;background:rgba(0,51,153,.1);top:-120px;left:-80px}
+.o2{width:520px;height:520px;background:rgba(0,180,216,.07);bottom:-160px;right:-120px}
+.page{position:relative;z-index:1;min-height:100vh;display:grid;grid-template-columns:1fr 480px}
+/* LEFT */
+.lp{display:flex;flex-direction:column;justify-content:space-between;padding:44px 56px}
+.brand{display:flex;align-items:center;gap:12px}
+.brand-logo{height:50px;width:auto;background:white;padding:4px 8px;border-radius:8px;flex-shrink:0}
+.brand-name{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--white);line-height:1.2}
+.brand-tag{font-size:10px;color:var(--cyan);text-transform:uppercase;letter-spacing:1.5px;font-weight:500}
+.hero{flex:1;display:flex;flex-direction:column;justify-content:center;padding:48px 0}
+.pill{display:inline-flex;align-items:center;gap:8px;background:rgba(0,180,216,.12);
+  border:1px solid rgba(0,180,216,.28);color:var(--cyan);padding:6px 14px;border-radius:100px;
+  font-size:11px;font-weight:600;letter-spacing:.6px;text-transform:uppercase;margin-bottom:24px;width:fit-content}
+.pill::before{content:'';width:6px;height:6px;background:var(--cyan);border-radius:50%}
+.hero h1{font-family:'Syne',sans-serif;font-size:clamp(32px,3.8vw,52px);font-weight:800;line-height:1.1;margin-bottom:18px}
+.hero h1 span{color:var(--cyan)}
+.hero p{font-size:16px;color:var(--text2);line-height:1.72;max-width:460px;margin-bottom:36px}
+.feats{display:flex;flex-direction:column;gap:11px}
+.feat{display:flex;align-items:center;gap:13px;padding:13px 16px;border-radius:11px;
+  background:var(--surf);border:1px solid var(--sbdr);font-size:13.5px;color:var(--text2)}
+.stats{display:flex;gap:36px}
+.sn{font-family:'Syne',sans-serif;font-size:26px;font-weight:800;
+  background:linear-gradient(135deg,var(--cyan),var(--navy));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.sl{font-size:11px;color:var(--text3);margin-top:2px}
+/* RIGHT */
+.rp{display:flex;align-items:center;justify-content:center;padding:28px;
+  background:rgba(255,255,255,.025);border-left:1px solid var(--sbdr);backdrop-filter:blur(24px)}
+.card{width:100%;max-width:400px;background:rgba(255,255,255,.045);
+  border:1px solid var(--sbdr);border-radius:22px;padding:34px 30px;
+  backdrop-filter:blur(40px);box-shadow:0 28px 60px rgba(0,0,0,.45),inset 0 1px 0 rgba(255,255,255,.09)}
+.card-head{text-align:center;margin-bottom:24px}
+.card-logo{height:54px;width:auto;max-width:190px;background:white;padding:5px 10px;
+  border-radius:10px;margin:0 auto 12px;display:block}
+.card-head h2{font-family:'Syne',sans-serif;font-size:19px;font-weight:700;margin-bottom:4px;color:var(--white)}
+.card-head p{font-size:13px;color:var(--text2)}
+.rtabs{display:flex;gap:3px;padding:3px;background:rgba(0,0,0,.25);
+  border:1px solid var(--sbdr);border-radius:11px;margin-bottom:20px}
+.rtab{flex:1;padding:8px 6px;border-radius:9px;text-align:center;font-size:12px;font-weight:500;
+  cursor:pointer;transition:all .18s;color:var(--text2);border:none;background:none;font-family:inherit}
+.rtab.on{background:linear-gradient(135deg,var(--navy),var(--blue));color:var(--white);
+  font-weight:600;box-shadow:0 3px 12px rgba(0,51,153,.4)}
+.msg-box{display:none;padding:11px 14px;margin-bottom:14px;border-radius:10px;
+  font-size:13px;line-height:1.5;white-space:pre-wrap}
+.msg-box.show{display:block}
+.msg-box.err{background:rgba(239,68,68,.12);border:1px solid rgba(239,68,68,.35);color:#fca5a5}
+.msg-box.ok{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.35);color:#6ee7b7}
+.fg{margin-bottom:15px}
+.fg label{display:block;font-size:11px;font-weight:600;color:var(--text2);
+  margin-bottom:6px;letter-spacing:.4px;text-transform:uppercase}
+.fg input{width:100%;padding:12px 15px;background:rgba(255,255,255,.07);
+  border:1.5px solid var(--sbdr);border-radius:10px;color:var(--text);font-size:14px;
+  font-family:inherit;outline:none;transition:all .18s}
+.fg input:focus{border-color:var(--cyan);background:rgba(0,180,216,.07);box-shadow:0 0 0 3px rgba(0,180,216,.13)}
+.fg input::placeholder{color:var(--text3)}
+.btn-login{width:100%;padding:13px;background:linear-gradient(135deg,var(--navy),var(--blue));
+  border:none;border-radius:11px;color:var(--white);font-size:15px;font-weight:700;
+  font-family:'Syne',sans-serif;cursor:pointer;transition:all .22s;
+  box-shadow:0 6px 22px rgba(0,51,153,.4);display:flex;align-items:center;
+  justify-content:center;gap:9px;min-height:48px}
+.btn-login:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 28px rgba(0,51,153,.5)}
+.btn-login:disabled{opacity:.7;cursor:not-allowed;transform:none!important}
+.demo-sec{margin-top:16px;padding-top:15px;border-top:1px solid var(--sbdr)}
+.demo-lbl{font-size:10px;color:var(--text3);text-align:center;margin-bottom:9px;
+  text-transform:uppercase;letter-spacing:.6px}
+.demo-list{display:flex;flex-direction:column;gap:5px}
+.demo-btn{display:flex;align-items:center;justify-content:space-between;
+  padding:8px 12px;background:rgba(255,255,255,.04);border:1px solid var(--sbdr);
+  border-radius:8px;cursor:pointer;font-size:12px;color:var(--text2);
+  transition:all .18s;font-family:inherit;text-align:left;width:100%}
+.demo-btn:hover{background:rgba(255,255,255,.09);color:var(--text);border-color:rgba(255,255,255,.2)}
+.rbadge{padding:2px 7px;border-radius:4px;font-size:9px;font-weight:700;
+  text-transform:uppercase;letter-spacing:.4px;flex-shrink:0}
+.rb-sa{background:rgba(245,158,11,.18);color:var(--gold)}
+.rb-or{background:rgba(0,180,216,.18);color:var(--cyan)}
+.rb-hr{background:rgba(16,185,129,.18);color:var(--green)}
+.setup-link{display:block;text-align:center;margin-top:13px;font-size:11px;color:var(--text3);text-decoration:none}
+.setup-link:hover{color:var(--cyan)}
+.spin{display:inline-block;width:16px;height:16px;border:2px solid rgba(255,255,255,.3);
+  border-top-color:var(--white);border-radius:50%;animation:ro .65s linear infinite;flex-shrink:0}
+@keyframes ro{to{transform:rotate(360deg)}}
+@media(max-width:860px){body{overflow:auto}.page{grid-template-columns:1fr}.lp{display:none}.rp{min-height:100vh;border-left:none}}
+</style>
+</head>
+<body>
+<div class="bg"></div><div class="bg-grid"></div>
+<div class="orb o1"></div><div class="orb o2"></div>
+<div class="page">
+  <div class="lp">
+    <div class="brand">
+      <img class="brand-logo" src="assets/logo.jpg" alt="MAH" onerror="this.style.display='none'">
+      <div><div class="brand-name">Marengo Asia Hospitals</div><div class="brand-tag">Humane by Practice</div></div>
+    </div>
+    <div class="hero">
+      <div class="pill">Hospital Training System</div>
+      <h1>Training made <span>smarter,</span><br>simpler.</h1>
+      <p>Digital training management with QR attendance, live feedback, pre/post assessments — built for Marengo Asia Hospitals.</p>
+      <div class="feats">
+        <div class="feat"><span>📲</span> QR attendance — employees scan, no login needed</div>
+        <div class="feat"><span>📝</span> Live feedback &amp; assessments with instant results</div>
+        <div class="feat"><span>📊</span> Excel reports, certificates &amp; auto HR notifications</div>
+      </div>
+    </div>
+    <div class="stats">
+      <div><div class="sn">100%</div><div class="sl">Free to run</div></div>
+      <div><div class="sn">3</div><div class="sl">Role types</div></div>
+      <div><div class="sn">4</div><div class="sl">QR types</div></div>
+    </div>
+  </div>
+  <div class="rp">
+    <div class="card">
+      <div class="card-head">
+        <img class="card-logo" src="assets/logo.jpg" alt="Marengo Asia Hospitals" onerror="this.style.display='none'">
+        <h2>Welcome Back</h2>
+        <p>Sign in to your training portal</p>
+      </div>
+      <div class="rtabs">
+        <button class="rtab on" onclick="pickRole(this)">⚡ Super Admin</button>
+        <button class="rtab"    onclick="pickRole(this)">📋 Organiser</button>
+        <button class="rtab"    onclick="pickRole(this)">👥 HR</button>
+      </div>
+      <div class="msg-box" id="msgBox"></div>
+      <div class="fg">
+        <label>Employee ID</label>
+        <input type="text" id="empId" placeholder="e.g. ADMIN001 or EMP0001"
+               autocomplete="username" style="text-transform:uppercase;letter-spacing:1px;font-weight:600;font-size:16px"
+               oninput="this.value=this.value.toUpperCase()"
+               onkeydown="if(event.key==='Enter')document.getElementById('pw').focus()">
+      </div>
+      <div class="fg" style="margin-bottom:18px">
+        <label>Password</label>
+        <input type="password" id="pw" placeholder="••••••••"
+               autocomplete="current-password"
+               onkeydown="if(event.key==='Enter')login()">
+      </div>
+      <button class="btn-login" id="loginBtn" onclick="login()">
+        <span id="btnContent">Sign In &nbsp;→</span>
+      </button>
+      <div class="demo-sec">
+        <div class="demo-lbl">Demo Accounts — Click to fill &amp; login</div>
+        <div class="demo-list">
+          <button class="demo-btn" onclick="demoLogin('DEMO001','Admin@123',0)">
+            <span>Employee ID: DEMO001 / Admin@123</span>
+            <span class="rbadge rb-sa">Super Admin</span>
+          </button>
+          <button class="demo-btn" onclick="demoLogin('DEMO002','Demo@123',1)">
+            <span>Employee ID: DEMO002 / Demo@123</span>
+            <span class="rbadge rb-or">Organiser</span>
+          </button>
+          <button class="demo-btn" onclick="demoLogin('DEMO003','Demo@123',2)">
+            <span>Employee ID: DEMO003 / Demo@123</span>
+            <span class="rbadge rb-hr">HR</span>
+          </button>
+        </div>
+      </div>
+      <a class="setup-link" href="pages/setup-check.html">🔧 Connection issues? Run Setup Check</a>
+    </div>
+  </div>
+</div>
+<script>
+const DEMOS = {
+  'DEMO001':{ pass:'Admin@123', tabIdx:0, user:{id:'DEMO001',name:'Super Admin',employeeId:'DEMO001',email:'',role:'superadmin',department:'ALL'}},
+  'DEMO002':{ pass:'Demo@123',  tabIdx:1, user:{id:'DEMO002',name:'Dr. Priya Sharma',employeeId:'DEMO002',email:'',role:'organiser',department:'ALL'}},
+  'DEMO003':{ pass:'Demo@123',  tabIdx:2, user:{id:'DEMO003',name:'Rahul Mehta',employeeId:'DEMO003',email:'',role:'hr',department:'HR'}},
+};
+
+function pickRole(el){
+  document.querySelectorAll('.rtab').forEach(t=>t.classList.remove('on'));
+  el.classList.add('on'); clearMsg();
+}
+function showMsg(msg,type='err'){
+  const el=document.getElementById('msgBox');
+  el.textContent=msg; el.className='msg-box show '+type;
+}
+function clearMsg(){document.getElementById('msgBox').className='msg-box';}
+function setBusy(on){
+  const btn=document.getElementById('loginBtn'),cnt=document.getElementById('btnContent');
+  btn.disabled=on;
+  cnt.innerHTML=on?'<span class="spin"></span>&nbsp; Signing in…':'Sign In &nbsp;→';
+}
+function wait(ms){return new Promise(r=>setTimeout(r,ms));}
+
+async function demoLogin(empId,pass,tabIdx){
+  clearMsg();
+  const tabs=document.querySelectorAll('.rtab');
+  tabs.forEach((t,i)=>t.classList.toggle('on',i===tabIdx));
+  document.getElementById('empId').value=empId;
+  document.getElementById('pw').value=pass;
+  const demo=DEMOS[empId];
+  if(!demo){showMsg('Demo account not found.');return;}
+  setBusy(true);
+  await wait(250);
+  Session.set(demo.user);
+  const saved=Session.get();
+  if(!saved||!saved.id){setBusy(false);showMsg('Session save failed. Try a non-private browser window.');return;}
+  window.location.href='pages/dashboard.html';
+}
+
+async function login(){
+  clearMsg();
+  const empId=(document.getElementById('empId').value||'').trim().toUpperCase();
+  const pass=(document.getElementById('pw').value||'').trim();
+  if(!empId){showMsg('Please enter your Employee ID.');return;}
+  if(!pass){showMsg('Please enter your password.');return;}
+
+  // Demo accounts
+  const demo=DEMOS[empId];
+  if(demo){
+    if(demo.pass!==pass){showMsg('Wrong password for demo account.');return;}
+    await demoLogin(empId,pass,demo.tabIdx); return;
+  }
+
+  // No API
+  if(CONFIG.isDemo){
+    showMsg('Real login needs Google Apps Script.\nUse a demo account, or configure config.js with your Apps Script URL.');
+    return;
+  }
+
+  setBusy(true);
+  try{
+    const res=await API.call('login',{empId,password:pass});
+    if(res&&res.success&&res.user){
+      Session.set(res.user);
+      const saved=Session.get();
+      if(!saved||!saved.id){setBusy(false);showMsg('Session save failed. Try a non-private browser.');return;}
+      window.location.href='pages/dashboard.html';
+    } else {
+      setBusy(false);
+      showMsg((res&&res.message)||'Invalid Employee ID or password.');
+    }
+  } catch(e){
+    setBusy(false);
+    showMsg('Connection error: '+(e.message||e));
+  }
+}
+
+// Skip login if already logged in
+(function(){
+  try{const u=Session.get();if(u&&u.id&&u.role)window.location.href='pages/dashboard.html';}
+  catch(e){}
+})();
+</script>
+</body>
+</html>
