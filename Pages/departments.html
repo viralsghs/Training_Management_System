@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Departments — MAH Training System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/app.css">
+<script src="../js/config.js"></script>
+<script src="../js/app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="topbar" id="topbar"></div>
+    <main class="main" id="main">
+      <div class="loader-full"><span class="spinner"></span><span style="margin-left:10px;color:var(--text2)">Loading...</span></div>
+    </main>
+  </div>
+</div>
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box" id="modalBox">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+<script>
+let allDepts = [], allEmployees = [], currentUser = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  currentUser = Shell.init(['superadmin']);
+  if (!currentUser) return;
+  Shell.setTopbarTitle('Departments');
+  Shell.setTopbarActions(`<button class="btn btn-primary" onclick="openForm()">＋ Add Department</button>`);
+  [allDepts, allEmployees] = await Promise.all([SmartAPI.getDepartments(), SmartAPI.getEmployees()]);
+  renderPage();
+});
+
+function renderPage() {
+  const icons = ['🫀','🩻','🚨','🏥','💊','🔬','🩺','📋','🧪','🩹'];
+  document.getElementById('main').innerHTML = `
+    <div class="page-header">
+      <div><div class="page-title">Departments</div><div class="page-sub">${allDepts.length} active departments</div></div>
+      <button class="btn btn-primary btn-lg" onclick="openForm()">＋ Add Department</button>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(240px,1fr));gap:16px">
+      ${allDepts.map((d,i) => {
+        const empCnt = allEmployees.filter(e => e.Department === d.DeptName && e.Active !== 'FALSE').length;
+        const icon = icons[i % icons.length];
+        return `<div class="card" style="border-top:3px solid var(--teal);transition:all .2s;cursor:default" onmouseenter="this.style.transform='translateY(-3px)'" onmouseleave="this.style.transform='translateY(0)'">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:12px">
+            <div style="width:44px;height:44px;border-radius:12px;background:var(--tealfade);border:1px solid rgba(0,201,177,.2);display:flex;align-items:center;justify-content:center;font-size:20px">${icon}</div>
+            <div class="btn-group">
+              <button class="btn btn-ghost btn-sm btn-icon" onclick="openForm('${d.DeptID}','${d.DeptName}','${d.HeadName||''}')">✏️</button>
+            </div>
+          </div>
+          <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px">${d.DeptName}</div>
+          <div style="font-size:13px;color:var(--text2);margin-bottom:12px">${d.HeadName ? '👤 '+d.HeadName : '<span style="color:var(--text3)">No head assigned</span>'}</div>
+          <div style="display:flex;align-items:center;justify-content:space-between;padding-top:10px;border-top:1px solid var(--border2)">
+            <span style="font-size:12px;color:var(--text2)">👥 ${empCnt} employees</span>
+            <code style="font-size:10px;background:var(--surf3);padding:2px 6px;border-radius:4px;color:var(--text3)">${d.DeptID}</code>
+          </div>
+        </div>`;
+      }).join('')}
+      <!-- Add new card -->
+      <div class="card" style="border:2px dashed var(--border);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:160px;transition:all .2s;color:var(--text3)"
+        onclick="openForm()"
+        onmouseenter="this.style.borderColor='rgba(0,201,177,.4)';this.style.color='var(--teal)'"
+        onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">
+        <div style="font-size:28px;margin-bottom:8px">＋</div>
+        <div style="font-size:13px;font-weight:500">Add Department</div>
+      </div>
+    </div>`;
+}
+
+function openForm(id, name, head) {
+  document.getElementById('modalTitle').textContent = id ? 'Edit Department' : 'Add Department';
+  document.getElementById('modalBody').innerHTML = `
+    <div class="fg"><label>Department Name *</label><input type="text" id="dName" value="${name||''}" placeholder="e.g. Cardiology, Radiology"></div>
+    <div class="fg"><label>Department Head / HOD</label><input type="text" id="dHead" value="${head||''}" placeholder="Name of department head"></div>
+    <div class="btn-group" style="justify-content:flex-end;gap:10px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary btn-lg" onclick="saveDept('${id||''}')">💾 Save Department</button>
+    </div>`;
+  openModal();
+}
+
+async function saveDept(deptId) {
+  const name = document.getElementById('dName').value.trim();
+  const head = document.getElementById('dHead').value.trim();
+  if (!name) return Toast.show('Department name is required.','warning');
+  if (DEMO.isDemoMode()) {
+    if (deptId) {
+      const idx = DEMO.departments.findIndex(d => d.DeptID === deptId);
+      if (idx >= 0) { DEMO.departments[idx].DeptName = name; DEMO.departments[idx].HeadName = head; }
+    } else {
+      DEMO.departments.push({ DeptID:'D'+String(Date.now()).slice(-4), DeptName:name, HeadName:head, Active:'TRUE' });
+    }
+    allDepts = [...DEMO.departments];
+    closeModal(); Toast.show('Department saved!','success'); renderPage(); return;
+  }
+  const res = await API.call('saveDepartment',{DeptID:deptId||null,DeptName:name,HeadName:head});
+  if (res.success) { closeModal(); Toast.show('Saved!','success'); allDepts=await SmartAPI.getDepartments(); renderPage(); }
+  else Toast.show('Error.','error');
+}
+
+function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if (e.target === document.getElementById('modalOverlay')) closeModal();
+});
+</script>
+</body>
+</html>

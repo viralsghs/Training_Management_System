@@ -1,0 +1,250 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Feedback Templates — MAH Training System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/app.css">
+<script src="../js/config.js"></script>
+<script src="../js/app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="topbar" id="topbar"></div>
+    <main class="main" id="main">
+      <div class="loader-full"><span class="spinner"></span><span style="margin-left:10px;color:var(--text2)">Loading templates...</span></div>
+    </main>
+  </div>
+</div>
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box modal-xl" id="modalBox" style="max-width:700px">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+<script>
+let allTemplates = [], currentUser = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  currentUser = Shell.init(['superadmin']);
+  if (!currentUser) return;
+  Shell.setTopbarTitle('Feedback Templates');
+  Shell.setTopbarActions(`<button class="btn btn-primary" onclick="openBuilder()">＋ New Template</button>`);
+  allTemplates = await SmartAPI.getTemplates();
+  renderPage();
+});
+
+const qTypeConfig = {
+  rating: { icon:'⭐', label:'Star Rating', desc:'1–5 stars', color:'var(--gold)' },
+  scale:  { icon:'📊', label:'Scale 1–5',   desc:'Numbered scale', color:'var(--blue,#6366f1)' },
+  mcq:    { icon:'🔘', label:'Multiple Choice', desc:'Select one option', color:'var(--teal)' },
+  text:   { icon:'✍️', label:'Text Answer', desc:'Open-ended response', color:'#a78bfa' },
+};
+
+function renderPage() {
+  document.getElementById('main').innerHTML = `
+    <div class="page-header">
+      <div>
+        <div class="page-title">Feedback Templates</div>
+        <div class="page-sub">Design reusable feedback forms · Organisers can use any active template</div>
+      </div>
+      <button class="btn btn-primary btn-lg" onclick="openBuilder()">＋ New Template</button>
+    </div>
+
+    <div class="alert alert-info" style="margin-bottom:20px">
+      <span>ℹ</span>
+      <span>Templates are created by Super Admin only. Organisers select a template when setting up a training — they cannot edit templates.</span>
+    </div>
+
+    <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(300px,1fr));gap:16px">
+      ${allTemplates.map(t => {
+        let qs = []; try { qs = JSON.parse(t.Questions); } catch(e) {}
+        return `<div class="card" style="transition:all .2s" onmouseenter="this.style.borderColor='rgba(0,201,177,.3)'" onmouseleave="this.style.borderColor='var(--border)'">
+          <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:14px">
+            <div>
+              <div style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:4px">${t.TemplateName}</div>
+              <div style="font-size:12px;color:var(--text2)">${qs.length} questions</div>
+            </div>
+            <div class="btn-group">
+              <button class="btn btn-ghost btn-sm" onclick="openBuilder('${t.TemplateID}')">✏️</button>
+              <button class="btn btn-danger btn-sm" onclick="deleteTemplate('${t.TemplateID}','${t.TemplateName}')">🗑</button>
+            </div>
+          </div>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:14px">
+            ${qs.slice(0,4).map(q => {
+              const cfg = qTypeConfig[q.type] || qTypeConfig.text;
+              return `<div style="display:flex;align-items:center;gap:8px;font-size:12px;color:var(--text2)">
+                <span style="background:${cfg.color}22;color:${cfg.color};padding:1px 7px;border-radius:4px;font-size:10px;font-weight:700;flex-shrink:0">${cfg.icon} ${cfg.label}</span>
+                <span style="overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${q.label}</span>
+              </div>`;
+            }).join('')}
+            ${qs.length > 4 ? `<div style="font-size:11px;color:var(--text3)">+${qs.length-4} more questions</div>` : ''}
+          </div>
+          <div style="padding-top:10px;border-top:1px solid var(--border2);display:flex;align-items:center;justify-content:space-between">
+            <code style="font-size:10px;color:var(--text3);background:var(--surf3);padding:2px 6px;border-radius:4px">${t.TemplateID}</code>
+            <button class="btn btn-ghost btn-sm" onclick="previewTemplate('${t.TemplateID}')">👁 Preview</button>
+          </div>
+        </div>`;
+      }).join('')}
+      <div class="card" style="border:2px dashed var(--border);cursor:pointer;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:200px;transition:all .2s;color:var(--text3)"
+        onclick="openBuilder()"
+        onmouseenter="this.style.borderColor='rgba(0,201,177,.4)';this.style.color='var(--teal)'"
+        onmouseleave="this.style.borderColor='var(--border)';this.style.color='var(--text3)'">
+        <div style="font-size:32px;margin-bottom:8px">＋</div>
+        <div style="font-size:13px;font-weight:500">Create New Template</div>
+      </div>
+    </div>`;
+}
+
+// ─── Template Builder ───
+let builderQuestions = [], currentTemplateId = null;
+
+function openBuilder(templateId) {
+  currentTemplateId = templateId || null;
+  const t = templateId ? allTemplates.find(x => x.TemplateID === templateId) : null;
+  builderQuestions = [];
+  if (t) { try { builderQuestions = JSON.parse(t.Questions).map(q=>({...q})); } catch(e){} }
+
+  document.getElementById('modalTitle').textContent = templateId ? 'Edit Template' : 'New Feedback Template';
+  renderBuilderModal(t);
+  openModal();
+}
+
+function renderBuilderModal(t) {
+  document.getElementById('modalBody').innerHTML = `
+    <div class="fg"><label>Template Name *</label><input type="text" id="tmplName" value="${t?t.TemplateName:''}" placeholder="e.g. Standard Training Feedback"></div>
+    <div style="font-size:12px;font-weight:600;color:var(--text2);text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px">Add Question Type</div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-bottom:20px">
+      ${Object.entries(qTypeConfig).map(([type,cfg]) =>
+        `<button class="btn btn-ghost btn-sm" onclick="addQuestion('${type}')" style="flex-direction:column;gap:4px;padding:12px 8px;height:auto">
+          <span style="font-size:18px">${cfg.icon}</span>
+          <span style="font-size:11px">${cfg.label}</span>
+        </button>`
+      ).join('')}
+    </div>
+    <div id="questionList" style="display:flex;flex-direction:column;gap:10px">${renderBuilderList()}</div>
+    <div class="btn-group" style="justify-content:flex-end;gap:10px;margin-top:20px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary btn-lg" onclick="saveTemplate()">💾 Save Template</button>
+    </div>`;
+}
+
+function renderBuilderList() {
+  if (!builderQuestions.length) return `<div style="text-align:center;padding:24px;color:var(--text3);border:1.5px dashed var(--border);border-radius:10px;font-size:13px">Add questions using the buttons above</div>`;
+  return builderQuestions.map((q,i) => {
+    const cfg = qTypeConfig[q.type] || qTypeConfig.text;
+    return `<div style="background:var(--surf3);border:1px solid var(--border);border-radius:12px;padding:14px 16px;border-left:3px solid ${cfg.color}">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:10px">
+        <span style="font-size:11px;font-weight:700;color:${cfg.color};text-transform:uppercase;letter-spacing:.5px">${cfg.icon} ${cfg.label}</span>
+        <div style="display:flex;gap:6px">
+          ${i > 0 ? `<button class="btn btn-ghost btn-sm btn-icon" onclick="moveQ(${i},-1)" title="Move up">↑</button>` : ''}
+          ${i < builderQuestions.length-1 ? `<button class="btn btn-ghost btn-sm btn-icon" onclick="moveQ(${i},1)" title="Move down">↓</button>` : ''}
+          <button class="btn btn-danger btn-sm btn-icon" onclick="removeQ(${i})">🗑</button>
+        </div>
+      </div>
+      <div class="fg" style="margin-bottom:${q.type==='mcq'?'10px':'0'}"><label>Question Label</label>
+        <input type="text" id="qlabel${i}" value="${q.label||''}" placeholder="Enter your question here...">
+      </div>
+      ${q.type==='mcq' ? `<div class="fg" style="margin:0"><label>Options <span style="color:var(--text3);font-weight:400">(one per line)</span></label>
+        <textarea id="qopts${i}" rows="3" placeholder="Option 1&#10;Option 2&#10;Option 3">${(q.options||[]).join('\n')}</textarea>
+      </div>` : ''}
+    </div>`;
+  }).join('');
+}
+
+function addQuestion(type) {
+  builderQuestions.push({ type, label:'', options: type==='mcq'?['Excellent','Good','Average','Poor']:[] });
+  document.getElementById('questionList').innerHTML = renderBuilderList();
+}
+
+function removeQ(i) { builderQuestions.splice(i,1); document.getElementById('questionList').innerHTML=renderBuilderList(); }
+function moveQ(i, dir) {
+  const j = i+dir;
+  if (j<0||j>=builderQuestions.length) return;
+  [builderQuestions[i],builderQuestions[j]] = [builderQuestions[j],builderQuestions[i]];
+  document.getElementById('questionList').innerHTML = renderBuilderList();
+}
+
+async function saveTemplate() {
+  const name = document.getElementById('tmplName').value.trim();
+  if (!name) return Toast.show('Template name is required.','warning');
+  const built = builderQuestions.map((q,i) => ({
+    type: q.type,
+    label: document.getElementById('qlabel'+i)?.value.trim() || q.label,
+    options: q.type==='mcq'
+      ? (document.getElementById('qopts'+i)?.value||'').split('\n').map(s=>s.trim()).filter(Boolean)
+      : q.options
+  }));
+  if (!built.length) return Toast.show('Add at least one question.','warning');
+
+  if (DEMO.isDemoMode()) {
+    if (currentTemplateId) {
+      const idx = DEMO.templates.findIndex(t=>t.TemplateID===currentTemplateId);
+      if(idx>=0){DEMO.templates[idx].TemplateName=name;DEMO.templates[idx].Questions=JSON.stringify(built);}
+    } else {
+      DEMO.templates.push({TemplateID:'TMPL'+Date.now().toString().slice(-5),TemplateName:name,Questions:JSON.stringify(built),CreatedBy:currentUser.email,Active:'TRUE',CreatedDate:new Date().toISOString()});
+    }
+    allTemplates=[...DEMO.templates];
+    closeModal();Toast.show('Template saved!','success');renderPage();return;
+  }
+  const res = await API.call('saveFeedbackTemplate',{TemplateID:currentTemplateId,TemplateName:name,questions:built,CreatedBy:currentUser.email});
+  if(res.success){closeModal();Toast.show('Saved!','success');allTemplates=await SmartAPI.getTemplates();renderPage();}
+  else Toast.show('Error.','error');
+}
+
+function previewTemplate(templateId) {
+  const t = allTemplates.find(x=>x.TemplateID===templateId);
+  let qs=[]; try{qs=JSON.parse(t.Questions);}catch(e){}
+  document.getElementById('modalTitle').textContent = '👁 Preview: ' + t.TemplateName;
+  document.getElementById('modalBody').innerHTML = `
+    <p style="color:var(--text2);font-size:13px;margin-bottom:16px">This is how the feedback form will look to employees.</p>
+    ${qs.map((q,i) => {
+      const cfg = qTypeConfig[q.type]||qTypeConfig.text;
+      let input = '';
+      if(q.type==='rating') input=`<div style="display:flex;gap:6px;font-size:28px;color:rgba(255,255,255,.15)">${'★'.repeat(5)}</div>`;
+      else if(q.type==='scale') input=`<div style="display:flex;gap:6px">${[1,2,3,4,5].map(v=>`<div style="width:40px;height:40px;border:1.5px solid var(--border);border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;color:var(--text2)">${v}</div>`).join('')}</div>`;
+      else if(q.type==='mcq'&&q.options) input=`<div style="display:flex;flex-direction:column;gap:7px">${q.options.map(o=>`<div style="padding:10px 14px;border:1.5px solid var(--border);border-radius:9px;font-size:13px;color:var(--text2)">${o}</div>`).join('')}</div>`;
+      else input=`<div style="width:100%;height:64px;background:var(--surf3);border:1.5px solid var(--border);border-radius:9px"></div>`;
+      return `<div style="margin-bottom:18px"><div style="font-size:14px;font-weight:500;margin-bottom:10px">${i+1}. ${q.label}</div>${input}</div>`;
+    }).join('')}
+    <div style="margin-top:18px;padding-top:14px;border-top:1px solid var(--border)">
+      <div style="font-size:14px;font-weight:500;margin-bottom:8px">Overall Rating</div>
+      <div style="display:flex;gap:6px;font-size:28px;color:rgba(255,255,255,.15)">${'★'.repeat(5)}</div>
+    </div>
+    <div style="margin-top:14px">
+      <div style="font-size:14px;font-weight:500;margin-bottom:8px">Additional Comments</div>
+      <div style="width:100%;height:64px;background:var(--surf3);border:1.5px solid var(--border);border-radius:9px"></div>
+    </div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:16px">
+      <button class="btn btn-ghost" onclick="closeModal()">Close</button>
+      <button class="btn btn-primary" onclick="openBuilder('${templateId}')">✏️ Edit Template</button>
+    </div>`;
+  openModal();
+}
+
+async function deleteTemplate(id, name) {
+  if (!confirm(`Delete template "${name}"? This cannot be undone.`)) return;
+  if (DEMO.isDemoMode()) {
+    const idx=DEMO.templates.findIndex(t=>t.TemplateID===id);
+    if(idx>=0)DEMO.templates.splice(idx,1);
+    allTemplates=[...DEMO.templates];
+    Toast.show('Template deleted.','success');renderPage();return;
+  }
+  const res=await API.call('deleteFeedbackTemplate',{templateId:id});
+  if(res.success){Toast.show('Deleted.','success');allTemplates=await SmartAPI.getTemplates();renderPage();}
+}
+
+function openModal() { document.getElementById('modalOverlay').classList.add('open'); }
+function closeModal() { document.getElementById('modalOverlay').classList.remove('open'); }
+document.getElementById('modalOverlay').addEventListener('click', e => {
+  if(e.target===document.getElementById('modalOverlay')) closeModal();
+});
+</script>
+</body>
+</html>

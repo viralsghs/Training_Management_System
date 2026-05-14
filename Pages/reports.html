@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Reports — MAH Training System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/app.css">
+<script src="../js/config.js"></script>
+<script src="../js/app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="topbar" id="topbar"></div>
+    <main class="main" id="main">
+      <div class="loader-full"><span class="spinner"></span><span style="margin-left:10px;color:var(--text2)">Loading reports...</span></div>
+    </main>
+  </div>
+</div>
+<script>
+let allTrainings = [], currentUser = null;
+
+document.addEventListener('DOMContentLoaded', async () => {
+  currentUser = Shell.init();
+  if (!currentUser) return;
+  Shell.setTopbarTitle('Reports');
+  allTrainings = await SmartAPI.getTrainings(currentUser.role, currentUser.department);
+  renderPage();
+});
+
+function renderPage() {
+  const completed = allTrainings.filter(t => t.Status === 'Completed');
+  const active    = allTrainings.filter(t => t.Status === 'Active');
+  const reportable = [...active, ...completed];
+
+  // Overall stats
+  const totalAtt  = Object.values(DEMO.attendance).flat().length;
+  const totalFb   = Object.values(DEMO.feedback).flat().length;
+
+  document.getElementById('main').innerHTML = `
+    <div class="page-header">
+      <div><div class="page-title">Reports & Analytics</div><div class="page-sub">Download attendance, feedback and exam data</div></div>
+      <button class="btn btn-ghost btn-lg" onclick="downloadMasterReport()">📥 Download Master Report</button>
+    </div>
+
+    <!-- Summary stats -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:16px;margin-bottom:24px" class="stat-row">
+      ${sCard(allTrainings.length,'Total Trainings','📅','teal')}
+      ${sCard(completed.length,'Completed','✅','green')}
+      ${sCard(DEMO.isDemoMode()?totalAtt:'—','Total Attendees','👥','violet')}
+      ${sCard(DEMO.isDemoMode()?totalFb:'—','Feedbacks','📝','gold')}
+    </div>
+
+    <!-- Training-wise reports -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title" style="justify-content:space-between">
+        📊 Training-wise Reports
+        <div style="display:flex;gap:8px">
+          <input type="text" id="repSearch" placeholder="Search..." oninput="filterReports()"
+            style="padding:7px 12px;background:var(--surf3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:inherit;outline:none;width:200px">
+          <select id="repStatus" onchange="filterReports()"
+            style="padding:7px 12px;background:var(--surf3);border:1.5px solid var(--border);border-radius:8px;color:var(--text);font-size:13px;font-family:inherit;outline:none">
+            <option value="">All Status</option>
+            <option value="Active">Active</option>
+            <option value="Completed">Completed</option>
+          </select>
+        </div>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr>
+            <th>Training</th><th>Dept</th><th>Date</th>
+            <th>Attendees</th><th>Feedback</th><th>Avg Rating</th>
+            <th>Status</th><th>Downloads</th>
+          </tr></thead>
+          <tbody id="repBody">${renderRepRows(reportable)}</tbody>
+        </table>
+      </div>
+    </div>
+
+    <!-- Quick download section -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px" class="dl-grid">
+      <div class="card">
+        <div class="card-title">⚡ Quick Downloads</div>
+        <div style="display:flex;flex-direction:column;gap:10px">
+          ${dlBtn('📥 All Attendance (All Trainings)','downloadAllAttendance()')}
+          ${dlBtn('📥 All Feedback Summary','downloadAllFeedback()')}
+          ${dlBtn('📥 Training Schedule List','downloadSchedule()')}
+          ${dlBtn('📥 Department-wise Summary','downloadDeptSummary()')}
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-title">📈 Performance Summary</div>
+        ${DEMO.isDemoMode() ? perfSummary() : `<div class="empty-state" style="padding:20px"><div class="empty-sub">Connect API for live stats</div></div>`}
+      </div>
+    </div>`;
+}
+
+function sCard(n,label,icon,accent){
+  const c={teal:'var(--teal)',gold:'var(--gold)',green:'var(--green)',violet:'var(--violet)'};
+  return `<div class="stat-card" data-accent="${accent}"><div class="stat-icon">${icon}</div><div class="stat-num" style="color:${c[accent]}">${n}</div><div class="stat-label">${label}</div></div>`;
+}
+
+function renderRepRows(list) {
+  if (!list.length) return `<tr><td colspan="8"><div class="empty-state"><div class="empty-icon">📊</div><div class="empty-title">No reportable trainings yet</div></div></td></tr>`;
+  return list.map(t => {
+    const att = (DEMO.attendance[t.TrainingID]||[]).length;
+    const fb  = (DEMO.feedback[t.TrainingID]||[]).length;
+    const fbList = DEMO.feedback[t.TrainingID]||[];
+    const avgRating = fbList.length ? (fbList.reduce((s,f)=>s+parseFloat(f.OverallRating||0),0)/fbList.length).toFixed(1) : '—';
+    const stars = avgRating !== '—' ? `<span style="color:var(--gold)">★</span> ${avgRating}` : '—';
+    return `<tr>
+      <td>
+        <div style="font-weight:600">${t.Title}</div>
+        <div style="font-size:11px;color:var(--text3)">${t.Subject}</div>
+      </td>
+      <td style="font-size:13px">${t.Department}</td>
+      <td>
+        <div style="font-size:13px">${Utils.formatDate(t.StartDate)}</div>
+      </td>
+      <td>
+        <span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--teal)">${att}</span>
+        <span style="font-size:11px;color:var(--text3)">/${t.ExpectedAttendees||'?'}</span>
+      </td>
+      <td><span style="font-family:'Syne',sans-serif;font-size:16px;font-weight:700;color:var(--violet)">${fb}</span></td>
+      <td>${stars}</td>
+      <td><span class="badge badge-${Utils.statusColor(t.Status)}">${t.Status}</span></td>
+      <td>
+        <div class="btn-group" style="gap:5px;flex-wrap:nowrap">
+          <a href="training-detail.html?id=${t.TrainingID}" class="btn btn-ghost btn-sm">View</a>
+          <button class="btn btn-ghost btn-sm" onclick="quickDownload('${t.TrainingID}','${t.Title}')" title="Download full Excel">📥</button>
+        </div>
+      </td>
+    </tr>`;
+  }).join('');
+}
+
+function filterReports() {
+  const q = (document.getElementById('repSearch').value||'').toLowerCase();
+  const s = document.getElementById('repStatus').value;
+  let list = allTrainings.filter(t => t.Status==='Completed'||t.Status==='Active');
+  if (s) list = list.filter(t => t.Status===s);
+  if (q) list = list.filter(t => t.Title.toLowerCase().includes(q)||t.Department.toLowerCase().includes(q));
+  document.getElementById('repBody').innerHTML = renderRepRows(list);
+}
+
+function dlBtn(label, fn) {
+  return `<button class="btn btn-ghost" style="justify-content:flex-start;width:100%" onclick="${fn}">${label}</button>`;
+}
+
+function perfSummary() {
+  const trainings = allTrainings;
+  const completed = trainings.filter(t=>t.Status==='Completed');
+  const byDept = {};
+  trainings.forEach(t=>{ if(!byDept[t.Department])byDept[t.Department]=0; byDept[t.Department]++; });
+  const topDepts = Object.entries(byDept).sort((a,b)=>b[1]-a[1]).slice(0,5);
+  const maxCnt = topDepts[0]?.[1]||1;
+  return `<div style="display:flex;flex-direction:column;gap:10px">
+    ${topDepts.map(([dept,cnt]) => `
+      <div>
+        <div style="display:flex;justify-content:space-between;font-size:13px;margin-bottom:4px">
+          <span>${dept}</span><span style="font-weight:600;color:var(--teal)">${cnt} trainings</span>
+        </div>
+        <div class="prog-bar"><div class="prog-fill" style="width:${Math.round((cnt/maxCnt)*100)}%"></div></div>
+      </div>`).join('')}
+  </div>`;
+}
+
+// ─── Download helpers ───
+async function quickDownload(trainingId, title) {
+  const report = await SmartAPI.getReport(trainingId);
+  const att = report.attendance||[];
+  const fb  = report.feedback||[];
+  const pre = report.preExamResults||[];
+  const post= report.postExamResults||[];
+  const t   = report.training;
+
+  const rows = [
+    ['TRAINING REPORT','','','',''],
+    ['Title',t.Title,'','Department',t.Department],
+    ['Date',t.StartDate,'','Venue',t.Venue],
+    ['Trainer',t.TrainerName,'','Status',t.Status],
+    ['','','','',''],
+    ['ATTENDANCE ('+att.length+')','','','',''],
+    ['Emp ID','Name','Department','Designation','Time'],
+    ...att.map(a=>[a.EmployeeID,a.EmployeeName,a.Department,a.Designation,Utils.formatDateTime(a.Timestamp)]),
+    ['','','','',''],
+    ['FEEDBACK ('+fb.length+')','','','',''],
+    ['Employee','Overall Rating','Trainer Rating','Comments','Time'],
+    ...fb.map(f=>[f.EmployeeName,f.OverallRating+'/5',f.TrainerRating+'/5',f.Comments||'',Utils.formatDateTime(f.Timestamp)]),
+  ];
+  if (pre.length||post.length) {
+    rows.push(['','','','',''],['EXAM RESULTS','','','',''],['Employee','Type','Score','Max','%','Result']);
+    pre.forEach(r=>rows.push([r.EmployeeName,'Pre-Exam',r.Score,r.MaxScore,r.Percentage+'%',parseFloat(r.Percentage)>=50?'Pass':'Fail']));
+    post.forEach(r=>rows.push([r.EmployeeName,'Post-Exam',r.Score,r.MaxScore,r.Percentage+'%',parseFloat(r.Percentage)>=50?'Pass':'Fail']));
+  }
+  Utils.downloadCSV(rows, `Report_${trainingId}_${title.replace(/\s+/g,'_')}.csv`);
+  Toast.show('Report downloaded!','success');
+}
+
+async function downloadMasterReport() {
+  const rows = [
+    ['Training ID','Title','Department','Subject','Date','Trainer','Venue','Status','Attendees','Expected','Feedbacks'],
+    ...allTrainings.map(t => {
+      const att=(DEMO.attendance[t.TrainingID]||[]).length;
+      const fb=(DEMO.feedback[t.TrainingID]||[]).length;
+      return [t.TrainingID,t.Title,t.Department,t.Subject,t.StartDate,t.TrainerName,t.Venue,t.Status,att,t.ExpectedAttendees,fb];
+    })
+  ];
+  Utils.downloadCSV(rows,'MasterReport_'+new Date().toISOString().split('T')[0]+'.csv');
+  Toast.show('Master report downloaded!','success');
+}
+
+function downloadAllAttendance() {
+  const rows = [['Training','Department','Date','Emp ID','Name','Dept','Designation','Time']];
+  allTrainings.forEach(t => {
+    (DEMO.attendance[t.TrainingID]||[]).forEach(a => {
+      rows.push([t.Title,t.Department,t.StartDate,a.EmployeeID,a.EmployeeName,a.Department,a.Designation,Utils.formatDateTime(a.Timestamp)]);
+    });
+  });
+  Utils.downloadCSV(rows,'AllAttendance_'+new Date().toISOString().split('T')[0]+'.csv');
+  Toast.show('Downloaded!','success');
+}
+
+function downloadAllFeedback() {
+  const rows = [['Training','Department','Date','Employee','Overall','Trainer Rating','Comments']];
+  allTrainings.forEach(t => {
+    (DEMO.feedback[t.TrainingID]||[]).forEach(f => {
+      rows.push([t.Title,t.Department,t.StartDate,f.EmployeeName,f.OverallRating,f.TrainerRating,f.Comments||'']);
+    });
+  });
+  Utils.downloadCSV(rows,'AllFeedback_'+new Date().toISOString().split('T')[0]+'.csv');
+  Toast.show('Downloaded!','success');
+}
+
+function downloadSchedule() {
+  const rows = [['Training ID','Title','Department','Subject','Date','Start','End','Venue','Trainer','Expected','Status','Pre-Exam','Post-Exam','Certificate']];
+  allTrainings.forEach(t => rows.push([t.TrainingID,t.Title,t.Department,t.Subject,t.StartDate,t.StartTime,t.EndTime,t.Venue,t.TrainerName,t.ExpectedAttendees,t.Status,t.PreExamRequired,t.PostExamRequired,t.CertificateEnabled]));
+  Utils.downloadCSV(rows,'TrainingSchedule_'+new Date().toISOString().split('T')[0]+'.csv');
+  Toast.show('Downloaded!','success');
+}
+
+function downloadDeptSummary() {
+  const byDept = {};
+  allTrainings.forEach(t => {
+    if (!byDept[t.Department]) byDept[t.Department] = { total:0,completed:0,attendees:0 };
+    byDept[t.Department].total++;
+    if(t.Status==='Completed') byDept[t.Department].completed++;
+    byDept[t.Department].attendees += (DEMO.attendance[t.TrainingID]||[]).length;
+  });
+  const rows = [['Department','Total Trainings','Completed','Attendees']];
+  Object.entries(byDept).forEach(([dept,s]) => rows.push([dept,s.total,s.completed,s.attendees]));
+  Utils.downloadCSV(rows,'DeptSummary_'+new Date().toISOString().split('T')[0]+'.csv');
+  Toast.show('Downloaded!','success');
+}
+</script>
+<style>
+@media(max-width:900px){.stat-row{grid-template-columns:repeat(2,1fr)!important}.dl-grid{grid-template-columns:1fr!important}}
+</style>
+</body>
+</html>

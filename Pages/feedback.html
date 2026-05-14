@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Feedback — MAH Training System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="../js/config.js"></script>
+<style>
+*,::before,::after{box-sizing:border-box;margin:0;padding:0}
+:root{--blue:#6366f1;--teal:#00c9b1;--gold:#f59e0b;--ink:#0a0e1a;--text:#e2e8f0;--text2:#94a3b8;--bdr:rgba(255,255,255,.1)}
+body{font-family:'DM Sans',sans-serif;background:var(--ink);color:var(--text);min-height:100vh;padding:20px;display:flex;align-items:flex-start;justify-content:center;overflow-x:hidden}
+.bg{position:fixed;inset:0;background:radial-gradient(ellipse 70% 60% at 20% 20%,rgba(99,102,241,.1),transparent 60%),radial-gradient(ellipse 60% 70% at 80% 80%,rgba(0,201,177,.08),transparent 60%),var(--ink);z-index:0}
+.card{position:relative;z-index:1;background:rgba(30,30,48,.97);border:1px solid var(--bdr);border-radius:24px;padding:28px 24px;width:100%;max-width:480px;margin:16px auto;box-shadow:0 32px 64px rgba(0,0,0,.5)}
+.logo{height:42px;background:white;padding:3px 7px;border-radius:8px;display:block;margin:0 auto 10px}
+.icon-wrap{width:62px;height:62px;border-radius:18px;background:linear-gradient(135deg,var(--blue),var(--teal));display:flex;align-items:center;justify-content:center;font-size:26px;margin:0 auto 10px;box-shadow:0 10px 28px rgba(99,102,241,.3)}
+h1{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;text-align:center;margin-bottom:4px}
+.sub{font-size:12px;color:var(--text2);text-align:center;margin-bottom:16px}
+.tbox{background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:10px;padding:11px 13px;margin-bottom:18px;text-align:center}
+.tbox .tn{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#a5b4fc;margin-bottom:3px}
+.tbox .tm{font-size:11px;color:var(--text2)}
+.warn{background:rgba(245,158,11,.1);border:1.5px solid rgba(245,158,11,.3);border-radius:10px;padding:14px;text-align:center;font-size:13px;color:#fcd34d;line-height:1.7;margin-bottom:12px}
+.step{display:none}.step.on{display:block}
+.sec-lbl{font-size:11px;font-weight:700;color:var(--text2);text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;display:flex;align-items:center;gap:8px}
+.sec-lbl::after{content:'';flex:1;height:1px;background:var(--bdr)}
+label{display:block;font-size:14px;font-weight:500;color:var(--text);margin-bottom:9px}
+.star-row{display:flex;gap:6px;margin-bottom:4px}
+.star{font-size:32px;color:rgba(255,255,255,.15);cursor:pointer;transition:all .15s;line-height:1;user-select:none}
+.star.lit{color:var(--gold);text-shadow:0 0 10px rgba(245,158,11,.5)}
+.star:hover{transform:scale(1.12)}
+.scale-row{display:flex;gap:6px;flex-wrap:wrap}
+.sbtn{width:44px;height:44px;border:1.5px solid var(--bdr);border-radius:9px;background:rgba(255,255,255,.04);cursor:pointer;font-size:15px;font-weight:700;color:var(--text2);font-family:inherit;transition:all .15s}
+.sbtn.sel{background:linear-gradient(135deg,var(--blue),var(--teal));color:white;border-color:transparent;box-shadow:0 4px 12px rgba(99,102,241,.3)}
+.mcq-list{display:flex;flex-direction:column;gap:7px}
+.mopt{display:flex;align-items:center;gap:11px;padding:11px 13px;border:1.5px solid var(--bdr);border-radius:9px;cursor:pointer;font-size:14px;transition:all .15s}
+.mopt:hover{border-color:rgba(99,102,241,.4);background:rgba(99,102,241,.06)}
+.mopt.sel{border-color:var(--blue);background:rgba(99,102,241,.12);color:#a5b4fc;font-weight:500}
+.mopt .dot{width:15px;height:15px;border-radius:50%;border:2px solid currentColor;display:flex;align-items:center;justify-content:center;flex-shrink:0}
+.mopt.sel .dot::after{content:'';width:7px;height:7px;border-radius:50%;background:currentColor}
+textarea{width:100%;padding:11px 13px;background:rgba(255,255,255,.06);border:1.5px solid var(--bdr);border-radius:9px;color:var(--text);font-size:14px;font-family:inherit;resize:vertical;min-height:68px;outline:none;transition:border .2s}
+textarea:focus{border-color:var(--blue)}
+.emp-in{width:100%;padding:13px;background:rgba(255,255,255,.06);border:2px solid var(--bdr);border-radius:11px;color:var(--text);font-size:20px;font-family:'Syne',sans-serif;font-weight:800;text-align:center;letter-spacing:3px;text-transform:uppercase;outline:none;transition:all .2s}
+.emp-in:focus{border-color:var(--blue);background:rgba(99,102,241,.06)}
+.emp-found{margin-top:8px;padding:10px 12px;background:rgba(0,201,177,.06);border:1px solid rgba(0,201,177,.2);border-radius:9px;font-size:13px;display:none}
+.emp-found strong{color:var(--teal);display:block;font-size:14px;margin-bottom:2px}
+.btn{width:100%;padding:13px;border:none;border-radius:11px;font-size:15px;font-family:'Syne',sans-serif;font-weight:800;cursor:pointer;transition:all .22s;margin-top:8px;letter-spacing:.3px}
+.btn-p{background:linear-gradient(135deg,var(--blue),#4f46e5);color:white;box-shadow:0 6px 20px rgba(99,102,241,.3)}
+.btn-p:hover{transform:translateY(-2px);box-shadow:0 10px 28px rgba(99,102,241,.4)}
+.btn-p:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.fg{margin-bottom:18px}
+.divider{height:1px;background:var(--bdr);margin:18px 0}
+.result{display:none;text-align:center;padding:18px 0}
+.ri{font-size:64px;animation:pop .5s ease;margin-bottom:10px}
+.rt{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;margin-bottom:8px}
+.rm{font-size:14px;color:var(--text2)}
+.sp{display:inline-block;width:15px;height:15px;border:2px solid rgba(255,255,255,.3);border-top-color:white;border-radius:50%;animation:ro .6s linear infinite;vertical-align:middle;margin-right:5px}
+@keyframes ro{to{transform:rotate(360deg)}}
+@keyframes pop{0%{transform:scale(.3);opacity:0}70%{transform:scale(1.2)}100%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="card">
+  <img class="logo" src="../assets/logo.jpg" alt="MAH" onerror="this.style.display='none'">
+  <div class="icon-wrap">📝</div>
+  <h1>Training Feedback</h1>
+  <p class="sub">Marengo Asia Hospitals · Your feedback matters</p>
+  <div class="tbox" id="tbox"><span class="sp" style="border-top-color:var(--blue);border-color:rgba(99,102,241,.2)"></span></div>
+
+  <!-- Step 1: Emp ID -->
+  <div class="step on" id="step1">
+    <div class="fg">
+      <label>Your Employee ID</label>
+      <input type="text" class="emp-in" id="eid" placeholder="EMP001" oninput="onEmpIn(this)" maxlength="12">
+      <div class="emp-found" id="efound"></div>
+    </div>
+    <button class="btn btn-p" onclick="goStep2()">Continue →</button>
+  </div>
+
+  <!-- Step 2: Feedback form -->
+  <div class="step" id="step2">
+    <div id="empBar" style="background:rgba(99,102,241,.08);border:1px solid rgba(99,102,241,.2);border-radius:9px;padding:9px 13px;margin-bottom:16px;font-size:13px"></div>
+    <div class="sec-lbl">Trainer Evaluation</div>
+    <div class="fg">
+      <label>How would you rate the trainer?</label>
+      <div class="star-row" id="trStars">${[1,2,3,4,5].map(v=>`<span class="star" onclick="setStar('tr',${v})">★</span>`).join('')}</div>
+    </div>
+    <div class="divider"></div>
+    <div class="sec-lbl">Training Evaluation</div>
+    <div id="dynQ"></div>
+    <div class="fg">
+      <label>Overall Training Rating</label>
+      <div class="star-row" id="ovStars">${[1,2,3,4,5].map(v=>`<span class="star" onclick="setStar('ov',${v})">★</span>`).join('')}</div>
+    </div>
+    <div class="fg">
+      <label>Additional Comments <span style="color:var(--text2);font-weight:400">(optional)</span></label>
+      <textarea id="cmts" placeholder="Any suggestions or comments..."></textarea>
+    </div>
+    <button class="btn btn-p" id="subBtn" onclick="submitFb()">Submit Feedback ✓</button>
+  </div>
+
+  <!-- Result -->
+  <div class="result" id="resultDiv">
+    <div class="ri">🙏</div>
+    <div class="rt">Thank You!</div>
+    <div class="rm" id="resultMsg">Your feedback has been recorded successfully.</div>
+  </div>
+</div>
+<script>
+const params=new URLSearchParams(location.search),tid=params.get('tid')||'';
+let td=null,tmpl=null,ed=null,lt=null;
+const ratings={tr:0,ov:0};
+const dynR={};
+const isDemo=CONFIG.isDemo;
+
+const demoTmpl={TemplateID:'TMPL001',Questions:JSON.stringify([
+  {type:'rating',label:'Rate the training content quality'},
+  {type:'scale',label:'Rate the venue & facilities (1=Poor, 5=Excellent)'},
+  {type:'mcq',label:'Training duration was?',options:['Too Short','Just Right','Too Long']},
+  {type:'text',label:'Most useful part of this training?'}
+])};
+
+window.addEventListener('load',async()=>{
+  if(!tid){setTBox('<span style="color:#ef4444">❌ Invalid QR</span>','');return;}
+  if(isDemo){
+    td={Title:'Advanced Cardiac Life Support',Department:'Cardiology',StartDate:'2025-02-10',Status:'Active'};
+    tmpl=demoTmpl; setTBox(td.Title,`${td.Department} · ${td.StartDate}`); renderDyn(); document.getElementById('eid').focus(); return;
+  }
+  try{
+    const [tr,tmr]=await Promise.all([API.call('getTraining',{trainingId:tid}),API.call('getTrainingFeedbackTemplate',{trainingId:tid})]);
+    td=tr&&tr.data?tr.data:null; tmpl=tmr&&tmr.data?tmr.data:null;
+    if(!td){setTBox('<span style="color:#ef4444">Training not found</span>','');return;}
+    setTBox(td.Title,`${td.Department} · ${td.StartDate}`);
+    if(td.Status!=='Active'){
+      document.getElementById('step1').innerHTML=`<div class="warn">⚠️ <strong>Feedback Not Open</strong><br>Training is <strong>"${td.Status}"</strong>.<br>Feedback is only available during/after an Active training.</div>`;
+    } else { renderDyn(); document.getElementById('eid').focus(); }
+  }catch(e){setTBox('<span style="color:#ef4444">Error loading</span>','');}
+});
+
+function setTBox(n,m){document.getElementById('tbox').innerHTML=`<div class="tn">${n}</div><div class="tm">${m}</div>`;}
+
+function onEmpIn(el){
+  el.value=el.value.toUpperCase();
+  document.getElementById('efound').style.display='none'; ed=null;
+  clearTimeout(lt);
+  if(el.value.length>=3) lt=setTimeout(()=>lookupEmp(el.value),500);
+}
+async function lookupEmp(id){
+  if(isDemo){const d={EMP001:{Name:'Ravi Kumar',Designation:'Nurse',Department:'Emergency'},EMP002:{Name:'Priya Nair',Designation:'Sr. Nurse',Department:'Emergency'},EMP007:{Name:'Arun T.',Designation:'Cardiologist',Department:'Cardiology'}};ed=d[id]||null;}
+  else{try{const r=await API.call('lookupEmployee',{empId:id});ed=r&&r.data?r.data:null;}catch(e){ed=null;}}
+  const ef=document.getElementById('efound');
+  if(ed){ef.style.display='block';ef.innerHTML=`<strong>${ed.Name}</strong>${ed.Designation} · ${ed.Department}`;}
+  else ef.style.display='none';
+}
+function goStep2(){
+  const id=document.getElementById('eid').value.trim().toUpperCase();
+  if(!id||!ed){alert('Please enter a valid Employee ID.');return;}
+  document.getElementById('empBar').innerHTML=`<strong style="color:#a5b4fc">${ed.Name}</strong> &nbsp;·&nbsp; ${ed.Designation}, ${ed.Department}`;
+  document.getElementById('step1').classList.remove('on');
+  document.getElementById('step2').classList.add('on');
+}
+
+function renderDyn(){
+  if(!tmpl)return;
+  let qs=[]; try{qs=JSON.parse(tmpl.Questions);}catch(e){}
+  document.getElementById('dynQ').innerHTML=qs.map((q,i)=>{
+    let inp='';
+    if(q.type==='rating') inp=`<div class="star-row" id="ds${i}">${[1,2,3,4,5].map(v=>`<span class="star" onclick="setDS(${i},${v})">★</span>`).join('')}</div>`;
+    else if(q.type==='scale') inp=`<div class="scale-row">${[1,2,3,4,5].map(v=>`<button class="sbtn" id="dsc${i}${v}" onclick="setSc(${i},${v})">${v}</button>`).join('')}</div>`;
+    else if(q.type==='mcq'&&q.options) inp=`<div class="mcq-list">${q.options.map((o,j)=>`<div class="mopt" id="dm${i}${j}" onclick="setMQ(${i},${j},'${o.replace(/'/g,"\\'")}')"><div class="dot"></div>${o}</div>`).join('')}</div>`;
+    else if(q.type==='text') inp=`<textarea id="dt${i}" placeholder="Your answer..." oninput="dynR[${i}]=this.value"></textarea>`;
+    return `<div class="fg"><label>${q.label}</label>${inp}</div>`;
+  }).join('');
+}
+
+function setStar(t,v){ratings[t]=v;const id=t==='tr'?'trStars':'ovStars';document.getElementById(id).querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('lit',i<v));}
+function setDS(qi,v){dynR[qi]=v;document.getElementById('ds'+qi).querySelectorAll('.star').forEach((s,i)=>s.classList.toggle('lit',i<v));}
+function setSc(qi,v){dynR[qi]=v;for(let i=1;i<=5;i++){const e=document.getElementById('dsc'+qi+i);if(e)e.classList.toggle('sel',i===v);}}
+function setMQ(qi,ji,v){dynR[qi]=v;let qs=[];try{qs=JSON.parse(tmpl.Questions);}catch(e){}if(qs[qi]&&qs[qi].options)qs[qi].options.forEach((_,j)=>{const e=document.getElementById('dm'+qi+j);if(e)e.classList.toggle('sel',j===ji);});}
+
+async function submitFb(){
+  if(!ratings.tr){alert('Please rate the trainer.');return;}
+  if(!ratings.ov){alert('Please give an overall rating.');return;}
+  const btn=document.getElementById('subBtn');
+  btn.disabled=true;btn.innerHTML='<span class="sp"></span>Submitting...';
+  const empId=document.getElementById('eid').value.trim().toUpperCase();
+  const cmts=document.getElementById('cmts').value.trim();
+  let qs=[];try{if(tmpl)qs=JSON.parse(tmpl.Questions);}catch(e){}
+  qs.forEach((_,i)=>{const e=document.getElementById('dt'+i);if(e)dynR[i]=e.value;});
+  if(isDemo){await new Promise(r=>setTimeout(r,700));showResult('Feedback submitted successfully! Thank you.');return;}
+  try{
+    const res=await API.call('submitFeedback',{trainingId:tid,employeeId:empId,templateId:tmpl?tmpl.TemplateID:'',responses:JSON.stringify(dynR),trainerRating:ratings.tr,overallRating:ratings.ov,comments:cmts});
+    if(res.success)showResult(res.message||'Feedback submitted!');
+    else{btn.disabled=false;btn.textContent='Submit Feedback ✓';alert(res.message||'Error.');}
+  }catch(e){btn.disabled=false;btn.textContent='Submit Feedback ✓';alert('Connection error.');}
+}
+function showResult(msg){
+  document.getElementById('step1').classList.remove('on');
+  document.getElementById('step2').classList.remove('on');
+  document.getElementById('resultMsg').textContent=msg;
+  document.getElementById('resultDiv').style.display='block';
+}
+</script>
+</body>
+</html>

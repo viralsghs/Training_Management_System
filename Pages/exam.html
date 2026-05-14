@@ -1,0 +1,229 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Training Exam — MAH Training System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@700;800&family=DM+Sans:wght@400;500&display=swap" rel="stylesheet">
+<script src="../js/config.js"></script>
+<style>
+*,::before,::after{box-sizing:border-box;margin:0;padding:0}
+:root{--gold:#f59e0b;--red:#ef4444;--green:#10b981;--ink:#0a0e1a;--text:#e2e8f0;--text2:#94a3b8;--bdr:rgba(255,255,255,.1)}
+body{font-family:'DM Sans',sans-serif;background:var(--ink);color:var(--text);min-height:100vh;padding:20px;display:flex;align-items:flex-start;justify-content:center;overflow-x:hidden}
+.bg{position:fixed;inset:0;background:radial-gradient(ellipse 70% 60% at 30% 20%,rgba(245,158,11,.1),transparent 60%),radial-gradient(ellipse 60% 70% at 80% 80%,rgba(239,68,68,.07),transparent 60%),var(--ink);z-index:0}
+.card{position:relative;z-index:1;background:rgba(30,30,48,.97);border:1px solid var(--bdr);border-radius:24px;padding:28px 24px;width:100%;max-width:520px;margin:16px auto;box-shadow:0 32px 64px rgba(0,0,0,.5)}
+.logo{height:42px;background:white;padding:3px 7px;border-radius:8px;display:block;margin:0 auto 10px}
+.badge{display:inline-flex;align-items:center;gap:6px;padding:4px 12px;border-radius:100px;font-size:11px;font-weight:700;text-transform:uppercase;letter-spacing:.5px;margin-bottom:10px}
+.pre{background:rgba(245,158,11,.12);border:1px solid rgba(245,158,11,.25);color:var(--gold)}
+.post{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:var(--red)}
+h1{font-family:'Syne',sans-serif;font-size:19px;font-weight:800;text-align:center;margin-bottom:4px}
+.sub{font-size:12px;color:var(--text2);text-align:center;margin-bottom:14px}
+.tbox{background:rgba(245,158,11,.07);border:1px solid rgba(245,158,11,.2);border-radius:10px;padding:11px 13px;margin-bottom:18px;text-align:center}
+.tbox .tn{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--gold);margin-bottom:3px}
+.tbox .tm{font-size:11px;color:var(--text2)}
+.warn{background:rgba(245,158,11,.1);border:1.5px solid rgba(245,158,11,.3);border-radius:10px;padding:14px;text-align:center;font-size:13px;color:#fcd34d;line-height:1.7;margin-bottom:12px}
+label{display:block;font-size:13px;font-weight:500;color:var(--text);margin-bottom:8px}
+.emp-in{width:100%;padding:14px;background:rgba(255,255,255,.06);border:2px solid var(--bdr);border-radius:11px;color:var(--text);font-size:20px;font-family:'Syne',sans-serif;font-weight:800;text-align:center;letter-spacing:3px;text-transform:uppercase;outline:none;transition:all .2s}
+.emp-in:focus{border-color:var(--gold);background:rgba(245,158,11,.05)}
+.emp-found{margin-top:8px;padding:9px 12px;background:rgba(16,185,129,.06);border:1px solid rgba(16,185,129,.2);border-radius:9px;font-size:13px;display:none}
+.emp-found strong{color:var(--green);display:block;font-size:14px;margin-bottom:1px}
+.btn{width:100%;padding:13px;border:none;border-radius:11px;font-size:15px;font-family:'Syne',sans-serif;font-weight:800;cursor:pointer;transition:all .22s;margin-top:10px;letter-spacing:.3px}
+.btn-start{background:linear-gradient(135deg,var(--gold),#d97706);color:#0a0a14;box-shadow:0 6px 20px rgba(245,158,11,.3)}
+.btn-start:hover:not(:disabled){transform:translateY(-2px);box-shadow:0 10px 28px rgba(245,158,11,.4)}
+.btn-start:disabled{opacity:.5;cursor:not-allowed;transform:none}
+.prog{margin-bottom:18px}
+.prog-top{display:flex;justify-content:space-between;font-size:13px;margin-bottom:7px}
+.qn{font-weight:700;color:var(--gold)}
+.mb{background:rgba(245,158,11,.1);border:1px solid rgba(245,158,11,.2);color:var(--gold);padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700}
+.prog-bar{background:rgba(255,255,255,.06);border-radius:100px;height:5px}
+.prog-fill{height:100%;border-radius:100px;background:linear-gradient(90deg,var(--gold),#d97706);transition:width .35s}
+.qcard{background:rgba(255,255,255,.04);border:1px solid rgba(255,255,255,.08);border-radius:12px;padding:16px;margin-bottom:16px;font-size:15px;font-weight:500;line-height:1.55;border-left:3px solid var(--gold)}
+.opts{display:flex;flex-direction:column;gap:8px;margin-bottom:18px}
+.opt{display:flex;align-items:center;gap:12px;padding:12px 14px;border:1.5px solid var(--bdr);border-radius:10px;cursor:pointer;font-size:14px;transition:all .17s}
+.opt:hover{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.05)}
+.opt.sel{border-color:var(--gold);background:rgba(245,158,11,.1);color:var(--gold);font-weight:600}
+.opt.correct{border-color:var(--green);background:rgba(16,185,129,.1);color:var(--green);font-weight:600}
+.opt.wrong{border-color:var(--red);background:rgba(239,68,68,.08);color:var(--red)}
+.ol{width:28px;height:28px;border-radius:7px;background:rgba(255,255,255,.06);display:flex;align-items:center;justify-content:center;font-weight:700;font-size:12px;flex-shrink:0;font-family:'Syne',sans-serif}
+.opt.sel .ol{background:var(--gold);color:#0a0a14}
+.opt.correct .ol{background:var(--green);color:#0a0a14}
+.opt.wrong .ol{background:var(--red);color:white}
+.nav{display:flex;gap:10px}
+.nav .btn{margin-top:0;flex:1}
+.btn-prev{background:rgba(255,255,255,.06);border:1.5px solid var(--bdr);color:var(--text2)}
+.btn-prev:hover{background:rgba(255,255,255,.1);color:var(--text)}
+.btn-next{background:linear-gradient(135deg,var(--gold),#d97706);color:#0a0a14}
+.res-screen{display:none;text-align:center;padding:10px 0}
+.score-ring{width:110px;height:110px;border-radius:50%;border:5px solid var(--gold);display:flex;flex-direction:column;align-items:center;justify-content:center;margin:0 auto 16px;box-shadow:0 0 0 7px rgba(245,158,11,.1);animation:ringIn .5s ease}
+.sp{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:var(--gold);line-height:1}
+.sf{font-size:11px;color:var(--text2)}
+.rt{font-family:'Syne',sans-serif;font-size:20px;font-weight:800;margin-bottom:5px}
+.rm{font-size:14px;color:var(--text2);margin-bottom:12px}
+.pb{display:inline-block;padding:5px 18px;border-radius:100px;font-size:13px;font-weight:700}
+.pb.pass{background:rgba(16,185,129,.12);border:1px solid rgba(16,185,129,.3);color:var(--green)}
+.pb.fail{background:rgba(239,68,68,.1);border:1px solid rgba(239,68,68,.25);color:var(--red)}
+.rv-list{text-align:left;margin-top:16px}
+.rv{padding:10px 12px;border-radius:9px;margin-bottom:7px;font-size:13px}
+.rv.c{background:rgba(16,185,129,.08);border-left:3px solid var(--green)}
+.rv.w{background:rgba(239,68,68,.07);border-left:3px solid var(--red)}
+.rv-q{font-weight:600;margin-bottom:3px;line-height:1.4}
+.rv-a{font-size:12px;color:var(--text2)}
+.spi{display:inline-block;width:15px;height:15px;border:2px solid rgba(0,0,0,.3);border-top-color:#0a0a14;border-radius:50%;animation:ro .6s linear infinite;vertical-align:middle;margin-right:4px}
+.step{display:none}.step.on{display:block}
+@keyframes ro{to{transform:rotate(360deg)}}
+@keyframes ringIn{0%{transform:scale(.5);opacity:0}100%{transform:scale(1);opacity:1}}
+</style>
+</head>
+<body>
+<div class="bg"></div>
+<div class="card">
+  <img class="logo" src="../assets/logo.jpg" alt="MAH" onerror="this.style.display='none'">
+  <div style="text-align:center"><div id="typeBadge"></div></div>
+  <h1 id="examTitle">Training Exam</h1>
+  <p class="sub">Marengo Asia Hospitals · Read each question carefully</p>
+  <div class="tbox" id="tbox"><span class="spi" style="border-top-color:var(--gold);border-color:rgba(245,158,11,.2)"></span></div>
+
+  <!-- Step 1: Emp ID -->
+  <div class="step on" id="step1">
+    <div style="margin-bottom:14px">
+      <label>Your Employee ID</label>
+      <input type="text" class="emp-in" id="eid" placeholder="EMP001" oninput="onIn(this)" maxlength="12">
+      <div class="emp-found" id="efound"></div>
+    </div>
+    <button class="btn btn-start" id="startBtn" onclick="startExam()">Start Exam →</button>
+  </div>
+
+  <!-- Step 2: Questions -->
+  <div class="step" id="step2">
+    <div class="prog">
+      <div class="prog-top"><span class="qn" id="qNum">Q 1</span><span class="mb" id="qMrk">1 mark</span></div>
+      <div class="prog-bar"><div class="prog-fill" id="pFill"></div></div>
+      <div style="font-size:11px;color:var(--text2);text-align:right;margin-top:4px" id="qCnt"></div>
+    </div>
+    <div class="qcard" id="qTxt"></div>
+    <div class="opts" id="qOpts"></div>
+    <div class="nav">
+      <button class="btn btn-prev" id="prevBtn" onclick="prevQ()" style="display:none">← Prev</button>
+      <button class="btn btn-next" id="nextBtn" onclick="nextQ()">Next →</button>
+    </div>
+  </div>
+
+  <!-- Result -->
+  <div class="res-screen" id="resScreen"></div>
+</div>
+<script>
+const params=new URLSearchParams(location.search);
+const tid=params.get('tid')||'';
+const examType=params.get('type')||(location.search.includes('preexam')?'pre':'post');
+const isDemo=CONFIG.isDemo;
+let qs=[],cur=0,answers={},empId='',empData=null,lt=null;
+
+const demoQs={
+  pre:[
+    {QID:'Q001',Question:'What does BLS stand for?',OptionA:'Basic Life Support',OptionB:'Body Lung Support',OptionC:'Basic Lung Safety',OptionD:'Body Life System',CorrectOption:'A',Marks:'1'},
+    {QID:'Q002',Question:'Chest compressions per minute in adult CPR?',OptionA:'60-80',OptionB:'80-100',OptionC:'100-120',OptionD:'120-140',CorrectOption:'C',Marks:'1'},
+    {QID:'Q003',Question:'Compression to breath ratio in adult CPR?',OptionA:'15:1',OptionB:'30:2',OptionC:'20:2',OptionD:'15:2',CorrectOption:'B',Marks:'2'},
+  ],
+  post:[
+    {QID:'Q101',Question:'After CPR, recommended follow-up care?',OptionA:'Leave patient to rest',OptionB:'Immediate defibrillation',OptionC:'Post-resuscitation care',OptionD:'Administer paracetamol',CorrectOption:'C',Marks:'2'},
+    {QID:'Q102',Question:'AED first step after turning on?',OptionA:'Begin CPR',OptionB:'Call for help',OptionC:'Attach pads as shown',OptionD:'Check pulse',CorrectOption:'C',Marks:'1'},
+  ]
+};
+
+window.addEventListener('load',async()=>{
+  const label=examType==='pre'?'Pre-Exam':'Post-Exam';
+  document.getElementById('typeBadge').innerHTML=`<div class="badge ${examType}">${label}</div>`;
+  document.getElementById('examTitle').textContent=label;
+  if(!tid){setTBox('<span style="color:#ef4444">❌ Invalid QR</span>','');return;}
+  if(isDemo){setTBox('Advanced Cardiac Life Support','Cardiology · 2025-02-10');document.getElementById('eid').focus();return;}
+  try{
+    const r=await API.call('getTraining',{trainingId:tid});
+    if(!r||!r.data){setTBox('<span style="color:#ef4444">Training not found</span>','');return;}
+    const t=r.data;
+    const req=examType==='pre'?t.PreExamRequired:t.PostExamRequired;
+    if(req!=='TRUE'){setTBox(t.Title,'<span style="color:#ef4444">This exam is not enabled</span>');return;}
+    setTBox(t.Title,`${t.Department} · ${t.StartDate}`);
+    if(t.Status!=='Active'){
+      document.getElementById('step1').innerHTML=`<div class="warn">⚠️ <strong>Exam Not Open</strong><br>Training is <strong>"${t.Status}"</strong>.<br>The organiser must <strong>Activate</strong> the training first.</div>`;
+    } else {
+      document.getElementById('eid').focus();
+    }
+  }catch(e){setTBox('<span style="color:#ef4444">Error loading</span>','');}
+});
+
+function setTBox(n,m){document.getElementById('tbox').innerHTML=`<div class="tn">${n}</div><div class="tm">${m}</div>`;}
+function onIn(el){
+  el.value=el.value.toUpperCase(); empData=null;
+  document.getElementById('efound').style.display='none';
+  clearTimeout(lt);
+  if(el.value.length>=3) lt=setTimeout(()=>lookupEmp(el.value),500);
+}
+async function lookupEmp(id){
+  if(isDemo){const d={EMP001:{Name:'Ravi Kumar',Department:'Emergency',Designation:'Nurse'},EMP007:{Name:'Arun T.',Department:'Cardiology',Designation:'Cardiologist'}};empData=d[id]||null;}
+  else{try{const r=await API.call('lookupEmployee',{empId:id});empData=r&&r.data?r.data:null;}catch(e){empData=null;}}
+  const ef=document.getElementById('efound');
+  if(empData){ef.style.display='block';ef.innerHTML=`<strong>${empData.Name}</strong>${empData.Designation} · ${empData.Department}`;}
+}
+async function startExam(){
+  empId=document.getElementById('eid').value.trim().toUpperCase();
+  if(!empId||!empData){alert('Enter a valid Employee ID.');return;}
+  const btn=document.getElementById('startBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spi"></span>Loading...';
+  if(isDemo){qs=demoQs[examType]||demoQs.pre;}
+  else{try{const r=await API.call('getExamQuestions',{trainingId:tid,examType});qs=r&&r.data?r.data:[];}catch(e){qs=[];}}
+  if(!qs.length){btn.disabled=false;btn.textContent='Start Exam →';alert('No questions found. Contact organiser.');return;}
+  cur=0;answers={};
+  document.getElementById('step1').classList.remove('on');
+  document.getElementById('step2').classList.add('on');
+  renderQ();
+}
+function renderQ(){
+  const q=qs[cur],total=qs.length;
+  document.getElementById('qNum').textContent='Q '+(cur+1);
+  document.getElementById('qMrk').textContent=(q.Marks||1)+' mark'+(q.Marks>1?'s':'');
+  document.getElementById('pFill').style.width=((cur+1)/total*100)+'%';
+  document.getElementById('qCnt').textContent=(cur+1)+' of '+total+' questions';
+  document.getElementById('qTxt').textContent=q.Question;
+  document.getElementById('prevBtn').style.display=cur>0?'flex':'none';
+  document.getElementById('nextBtn').textContent=cur===total-1?'Submit Exam ✓':'Next →';
+  const opts=[{l:'A',t:q.OptionA},{l:'B',t:q.OptionB},{l:'C',t:q.OptionC},{l:'D',t:q.OptionD}].filter(o=>o.t);
+  document.getElementById('qOpts').innerHTML=opts.map(o=>`
+    <div class="opt ${answers[q.QID]===o.l?'sel':''}" onclick="selAns('${q.QID}','${o.l}')">
+      <span class="ol">${o.l}</span>${o.t}
+    </div>`).join('');
+}
+function selAns(qid,l){answers[qid]=l;renderQ();}
+function nextQ(){if(!answers[qs[cur].QID]){alert('Please select an answer.');return;}if(cur===qs.length-1)submitExam();else{cur++;renderQ();}}
+function prevQ(){if(cur>0){cur--;renderQ();}}
+async function submitExam(){
+  if(!confirm('Submit exam? You cannot change answers after this.'))return;
+  const btn=document.getElementById('nextBtn');
+  btn.disabled=true;btn.innerHTML='<span class="spi"></span>Submitting...';
+  if(isDemo){
+    const score=qs.reduce((s,q)=>s+(answers[q.QID]===q.CorrectOption?(parseInt(q.Marks)||1):0),0);
+    const max=qs.reduce((s,q)=>s+(parseInt(q.Marks)||1),0);
+    const pct=Math.round(score/max*100);
+    const details=qs.map(q=>({qid:q.QID,question:q.Question,given:answers[q.QID]||'—',correct:q.CorrectOption,isCorrect:answers[q.QID]===q.CorrectOption,marks:parseInt(q.Marks)||1}));
+    showResult({success:true,score,maxScore:max,percentage:pct,showResults:true,details});return;
+  }
+  try{
+    const res=await API.call('submitExam',{trainingId:tid,employeeId:empId,examType,answers:JSON.stringify(answers)});
+    showResult(res);
+  }catch(e){btn.disabled=false;btn.textContent='Submit Exam ✓';alert('Connection error.');}
+}
+function showResult(res){
+  document.getElementById('step2').classList.remove('on');
+  const sc=document.getElementById('resScreen');sc.style.display='block';
+  if(!res.success){sc.innerHTML=`<div style="text-align:center;padding:20px"><div style="font-size:52px">❌</div><div style="font-size:18px;font-weight:700;margin:10px 0">${res.message||'Error'}</div></div>`;return;}
+  if(!res.showResults){sc.innerHTML=`<div style="text-align:center;padding:20px"><div style="font-size:58px;animation:pop .5s ease">✅</div><div style="font-family:'Syne',sans-serif;font-size:21px;font-weight:800;margin:10px 0">Exam Submitted!</div><div style="color:var(--text2);font-size:14px">Your answers have been recorded.<br>Results will be shared by the trainer.</div></div>`;return;}
+  const pass=res.percentage>=50;
+  let rv='';
+  if(res.details&&res.details.length){rv=`<div class="rv-list"><div style="font-size:12px;font-weight:700;color:var(--text2);margin-bottom:8px;text-transform:uppercase;letter-spacing:.5px">Answer Review</div>${res.details.map((d,i)=>{const qTxt=qs[i]?.Question||'Q'+(i+1);return`<div class="rv ${d.isCorrect?'c':'w'}"><div class="rv-q">${d.isCorrect?'✓':'✗'} ${qTxt}</div><div class="rv-a">Your: <strong>${d.given}</strong>${d.isCorrect?'':` · Correct: <strong>${d.correct}</strong>`}</div></div>`}).join('')}</div>`;}
+  sc.innerHTML=`<div class="score-ring"><div class="sp">${res.percentage}%</div><div class="sf">${res.score}/${res.maxScore}</div></div>
+    <div class="rt">${pass?'🎉 Well Done!':'📚 Keep Learning'}</div>
+    <div class="rm">You scored <strong>${res.score} out of ${res.maxScore}</strong></div>
+    <span class="pb ${pass?'pass':'fail'}">${pass?'✓ Passed':'✗ Needs Improvement'}</span>${rv}`;
+}
+</script>
+</body>
+</html>

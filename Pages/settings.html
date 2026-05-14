@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Settings — MAH Training System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/app.css">
+<script src="../js/config.js"></script>
+<script src="../js/app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="topbar" id="topbar"></div>
+    <main class="main" id="main">
+      <div class="loader-full"><span class="spinner"></span><span style="margin-left:10px;color:var(--text2)">Loading settings...</span></div>
+    </main>
+  </div>
+</div>
+<script>
+document.addEventListener('DOMContentLoaded', async () => {
+  const user = Shell.init(['superadmin']);
+  if (!user) return;
+  Shell.setTopbarTitle('Settings');
+  const settings = await SmartAPI.getSettings();
+  render(settings);
+});
+
+function render(s) {
+  document.getElementById('main').innerHTML = `
+    <div class="page-header">
+      <div><div class="page-title">Settings</div><div class="page-sub">System configuration for Marengo Asia Hospitals Training System</div></div>
+    </div>
+
+    <!-- HR Email -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">📧 HR Email Configuration</div>
+      <div class="alert alert-info" style="margin-bottom:16px">
+        <span>ℹ</span>
+        <span>When a training is marked as <strong>Completed</strong>, an auto-email with attendance list is sent to this address. You can also configure this directly in the <strong>Settings</strong> sheet in Google Sheets.</span>
+      </div>
+      <div class="fg" style="max-width:480px">
+        <label>HR Email Address</label>
+        <input type="email" id="hrEmail" value="${s.hr_email||''}" placeholder="hr@marengoasia.com">
+        <div class="hint">Separate multiple emails with commas: hr@hospital.com, hod@hospital.com</div>
+      </div>
+      <button class="btn btn-primary" onclick="saveHREmail()">💾 Save HR Email</button>
+    </div>
+
+    <!-- Login Info -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">🔐 Login Configuration</div>
+      <div class="alert alert-info">
+        <span>ℹ</span>
+        <span>Users log in with their <strong>Employee ID</strong> and password. Default admin Employee ID is <strong>ADMIN001</strong>.</span>
+      </div>
+      <div style="font-size:13px;color:var(--text2);line-height:2">
+        <div>• Super Admin default: <code style="background:var(--surf3);padding:2px 8px;border-radius:4px;color:var(--teal)">ADMIN001</code> / <code style="background:var(--surf3);padding:2px 8px;border-radius:4px;color:var(--teal)">Admin@123</code></div>
+        <div>• New user default password: <code style="background:var(--surf3);padding:2px 8px;border-radius:4px;color:var(--teal)">Welcome@123</code></div>
+        <div>• Change passwords via <a href="users.html" style="color:var(--teal)">Users & Roles</a></div>
+      </div>
+    </div>
+
+    <!-- IST timezone note -->
+    <div class="card" style="margin-bottom:20px">
+      <div class="card-title">🕐 Timezone</div>
+      <div style="font-size:13px;color:var(--text2);line-height:2">
+        <div>All timestamps are recorded in <strong style="color:var(--teal)">IST (Indian Standard Time, UTC+5:30)</strong></div>
+        <div>This applies to: attendance records, training creation dates, feedback submissions, exam results</div>
+        <div>Current time: <strong style="color:var(--teal)" id="curTime"></strong></div>
+      </div>
+    </div>
+
+    <!-- About -->
+    <div class="card">
+      <div class="card-title">ℹ About</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;font-size:13px">
+        ${det('System','MAH Training Management System')}
+        ${det('Version','2.0.0')}
+        ${det('Hospital','Marengo Asia Hospitals')}
+        ${det('Tagline','Humane by Practice')}
+        ${det('Backend','Google Apps Script')}
+        ${det('Database','Google Sheets')}
+        ${det('Hosting','GitHub Pages')}
+        ${det('Cost','₹0 / $0 — Completely Free')}
+      </div>
+    </div>`;
+
+  // Live clock IST
+  function updateClock() {
+    const el = document.getElementById('curTime');
+    if (el) {
+      const ist = new Date(Date.now() + 5.5*60*60*1000);
+      el.textContent = ist.toISOString().replace('T',' ').replace(/\.\d+Z$/,' IST');
+    }
+  }
+  updateClock();
+  setInterval(updateClock, 1000);
+}
+
+function det(label, val) {
+  return `<div style="padding:8px 0;border-bottom:1px solid var(--border2)">
+    <div style="font-size:11px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px">${label}</div>
+    <div style="font-weight:500;margin-top:2px">${val}</div>
+  </div>`;
+}
+
+async function saveHREmail() {
+  const email = document.getElementById('hrEmail').value.trim();
+  const res = await SmartAPI.saveSettings({ hr_email: email });
+  if (res.success) Toast.show('HR email saved: ' + (email||'(cleared)'), 'success');
+  else Toast.show('Error saving: ' + (res.message||''), 'error');
+}
+</script>
+</body>
+</html>
