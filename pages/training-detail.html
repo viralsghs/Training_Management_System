@@ -1,0 +1,524 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Training Detail — MAH Training System</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:wght@300;400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="../css/app.css">
+<script src="../js/config.js"></script>
+<script src="../js/app.js"></script>
+</head>
+<body>
+<div class="app-shell">
+  <nav class="sidebar" id="sidebar"></nav>
+  <div style="flex:1;display:flex;flex-direction:column;min-width:0">
+    <div class="topbar" id="topbar"></div>
+    <main class="main" id="main">
+      <div class="loader-full"><span class="spinner"></span><span style="margin-left:10px;color:var(--text2)">Loading training...</span></div>
+    </main>
+  </div>
+</div>
+
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal-box modal-lg" id="modalBox">
+    <div class="modal-header">
+      <div class="modal-title" id="modalTitle"></div>
+      <button class="modal-close" onclick="closeModal()">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody"></div>
+  </div>
+</div>
+
+<script>
+let trainingId, report, currentUser;
+const BASE = window.location.origin + window.location.pathname.replace('training-detail.html','');
+
+document.addEventListener('DOMContentLoaded', async () => {
+  currentUser = Shell.init();
+  if (!currentUser) return;
+  const params = new URLSearchParams(window.location.search);
+  trainingId = params.get('id');
+  if (!trainingId) { location.href='trainings.html'; return; }
+  await loadDetail();
+});
+
+async function loadDetail() {
+  report = await SmartAPI.getReport(trainingId);
+  if (!report || !report.training) { location.href='trainings.html'; return; }
+  const t = report.training;
+  Shell.setTopbarTitle(t.Title || 'Training Detail');
+
+  document.getElementById('main').innerHTML = `
+    <!-- Header -->
+    <div style="display:flex;align-items:flex-start;gap:14px;margin-bottom:20px;flex-wrap:wrap">
+      <button class="btn btn-ghost" onclick="location.href='trainings.html'">← Back</button>
+      <div style="flex:1;min-width:0">
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap">
+          <div class="page-title" style="font-size:20px">${t.Title||'Untitled Training'}</div>
+          <span class="badge badge-${Utils.statusColor(t.Status)}" style="font-size:12px;padding:4px 12px">${t.Status}</span>
+        </div>
+        <div class="page-sub">${t.Department||''} · ${t.Venue||''} · ${Utils.formatDate(t.StartDate)} · ${t.StartTime||''}${t.EndTime?'–'+t.EndTime:''}</div>
+      </div>
+      <div class="btn-group no-print">
+        ${t.Status==='Scheduled'?`<button class="btn btn-success" onclick="changeStatus('Active')">▶ Activate Training</button>`:''}
+        ${t.Status==='Active'?`<button class="btn btn-primary" onclick="changeStatus('Completed')">✓ Complete & Notify HR</button>`:''}
+        <button class="btn btn-ghost" onclick="sendHREmail()">📧 Email HR</button>
+      </div>
+    </div>
+
+    <!-- Stats -->
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:20px" class="stat-row">
+      ${mini(report.attendance.length,'Attendees','👥','teal')}
+      ${mini(report.feedback.length,'Feedbacks','📝','violet')}
+      ${mini(report.stats.avgRating+'/5','Avg Rating','⭐','gold')}
+      ${mini(report.stats.avgTrainerRating+'/5','Trainer Rating','👨‍🏫','green')}
+    </div>
+
+    <!-- Tabs -->
+    <div class="tabs" id="tabs">
+      <button class="tab active" onclick="switchTab('overview',this)">📋 Overview</button>
+      <button class="tab" onclick="switchTab('qrcodes',this)">📲 QR Codes</button>
+      <button class="tab" onclick="switchTab('attendance',this)">✅ Attendance (${report.attendance.length})</button>
+      <button class="tab" onclick="switchTab('feedback',this)">📝 Feedback (${report.feedback.length})</button>
+      ${t.PreExamRequired==='TRUE'||t.PostExamRequired==='TRUE'?`<button class="tab" onclick="switchTab('exams',this)">📋 Exams</button>`:''}
+      <button class="tab" onclick="switchTab('photos',this)">📷 Photos</button>
+    </div>
+
+    <div id="tab-overview">${renderOverview(t)}</div>
+    <div id="tab-qrcodes" style="display:none">${renderQRCodes(t)}</div>
+    <div id="tab-attendance" style="display:none">${renderAttendance()}</div>
+    <div id="tab-feedback" style="display:none">${renderFeedback()}</div>
+    ${t.PreExamRequired==='TRUE'||t.PostExamRequired==='TRUE'?`<div id="tab-exams" style="display:none">${renderExams(t)}</div>`:''}
+    <div id="tab-photos" style="display:none">${renderPhotos()}</div>`;
+}
+
+function mini(n,label,icon,accent){
+  const c={teal:'var(--teal)',gold:'var(--gold)',green:'var(--green)',violet:'var(--violet)'};
+  return `<div class="stat-card" data-accent="${accent}" style="padding:15px">
+    <div class="stat-icon" style="font-size:20px">${icon}</div>
+    <div class="stat-num" style="color:${c[accent]};font-size:22px">${n}</div>
+    <div class="stat-label">${label}</div>
+  </div>`;
+}
+
+function switchTab(id, el) {
+  document.querySelectorAll('[id^="tab-"]').forEach(t=>t.style.display='none');
+  document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));
+  const tab = document.getElementById('tab-'+id);
+  if (tab) tab.style.display='block';
+  el.classList.add('active');
+}
+
+function renderOverview(t) {
+  return `<div style="display:grid;grid-template-columns:2fr 1fr;gap:18px" class="ov-grid">
+    <div class="card">
+      <div class="card-title">Training Information</div>
+      <div style="display:grid;grid-template-columns:1fr 1fr">
+        ${det('Trainer',t.TrainerName)} ${det('Department',t.Department)}
+        ${det('Date',Utils.formatDate(t.StartDate))} ${det('Time',(t.StartTime||'')+(t.EndTime?'–'+t.EndTime:''))}
+        ${det('Venue',t.Venue)} ${det('Expected',t.ExpectedAttendees+' attendees')}
+        ${det('Pre-Exam',t.PreExamRequired==='TRUE'?'✅ Yes':'❌ No')} ${det('Post-Exam',t.PostExamRequired==='TRUE'?'✅ Yes':'❌ No')}
+        ${det('Certificate',t.CertificateEnabled==='TRUE'?'✅ Enabled':'❌ Disabled')} ${det('Show Results',t.ShowExamResults==='TRUE'?'✅ Yes':'❌ No')}
+        ${det('Created',t.CreatedDate||'—')} ${det('Completed',t.CompletedDate||'—')}
+      </div>
+      ${t.Description?`<div style="margin-top:14px;padding:12px;background:var(--surf3);border-radius:9px;color:var(--text2);font-size:13px;line-height:1.6">${t.Description}</div>`:''}
+    </div>
+    <div style="display:flex;flex-direction:column;gap:14px">
+      <div class="card" style="background:var(--tealfade);border-color:rgba(0,201,177,.2)">
+        <div style="font-size:28px;margin-bottom:6px">📈</div>
+        <div style="font-family:'Syne',sans-serif;font-size:12px;font-weight:700;color:var(--teal)">Attendance Rate</div>
+        <div style="font-family:'Syne',sans-serif;font-size:30px;font-weight:800;color:var(--teal)">
+          ${t.ExpectedAttendees>0?Math.round((report.attendance.length/parseInt(t.ExpectedAttendees))*100)+'%':'—'}
+        </div>
+        <div style="font-size:11px;color:var(--text2)">${report.attendance.length} of ${t.ExpectedAttendees||'?'} expected</div>
+      </div>
+      <div class="card" style="text-align:center">
+        <div style="font-size:12px;color:var(--text2);margin-bottom:6px">Training ID</div>
+        <code style="font-size:12px;background:var(--surf3);padding:5px 10px;border-radius:7px;color:var(--teal)">${t.TrainingID}</code>
+      </div>
+    </div>
+  </div>`;
+}
+
+function det(label,val){
+  return `<div style="padding:10px 14px;border-bottom:1px solid var(--border2)">
+    <div style="font-size:10px;color:var(--text3);text-transform:uppercase;letter-spacing:.5px;margin-bottom:2px">${label}</div>
+    <div style="font-weight:500;font-size:13px">${val||'—'}</div>
+  </div>`;
+}
+
+function renderQRCodes(t) {
+  const isActive = t.Status === 'Active';
+  const notActiveMsg = !isActive ? `
+    <div class="alert alert-warning" style="margin-bottom:20px">
+      <span>⚠️</span>
+      <span>Training is <strong>${t.Status}</strong>. QR codes only work when training is <strong>Active</strong>. 
+      ${t.Status==='Scheduled'?'Click <strong>Activate Training</strong> button above to make QR codes live.':'QR codes are now closed.'}</span>
+    </div>` : `
+    <div class="alert alert-success" style="margin-bottom:20px">
+      <span>✅</span>
+      <span>Training is <strong>Active</strong>! All QR codes are live. Display them at the venue.</span>
+    </div>`;
+
+  const types = [
+    { key:'attendance', label:'Attendance', icon:'✅', color:'#10b981', desc:'Display at venue. Employees scan & enter ID to mark attendance.', page:'attendance.html' },
+    { key:'feedback',   label:'Feedback',   icon:'📝', color:'#6366f1', desc:'Show after training for feedback collection.', page:'feedback.html' },
+    ...(t.PreExamRequired==='TRUE'  ? [{key:'preexam',  label:'Pre-Exam',  icon:'📋', color:'#f59e0b', desc:'Employees scan before training to take pre-assessment.', page:'exam.html?type=pre'}] : []),
+    ...(t.PostExamRequired==='TRUE' ? [{key:'postexam', label:'Post-Exam', icon:'📋', color:'#ef4444', desc:'Employees scan after training to take post-assessment.', page:'exam.html?type=post'}] : []),
+  ];
+
+  const qrCards = types.map(q => {
+    const url = `${BASE}${q.page}&tid=${trainingId}`;
+    const qrUrl = Utils.generateQRDataURL(url, 200);
+    return `<div class="card" style="text-align:center;border-top:3px solid ${q.color};${!isActive?'opacity:.6':''}">
+      <div style="font-size:28px;margin-bottom:6px">${q.icon}</div>
+      <div style="font-family:'Syne',sans-serif;font-size:15px;font-weight:700;margin-bottom:4px">${q.label} QR</div>
+      <div style="font-size:11px;color:var(--text2);margin-bottom:14px;min-height:32px">${q.desc}</div>
+      ${isActive
+        ? `<div style="background:white;padding:10px;border-radius:10px;margin-bottom:12px;display:inline-block">
+            <img src="${qrUrl}" width="160" height="160" style="display:block;border-radius:5px" id="qrimg-${q.key}">
+           </div>`
+        : `<div style="background:var(--surf3);border:2px dashed var(--border);border-radius:10px;width:180px;height:180px;display:flex;align-items:center;justify-content:center;margin:0 auto 12px;flex-direction:column;gap:8px">
+            <div style="font-size:32px;opacity:.4">🔒</div>
+            <div style="font-size:11px;color:var(--text3)">Activate training first</div>
+           </div>`
+      }
+      <div class="btn-group" style="justify-content:center">
+        <button class="btn btn-ghost btn-sm" onclick="printQR('${q.key}','${q.label}','${t.Subject||t.Title}','${t.Title}','${url}')" ${!isActive?'disabled':''}>🖨️ Print</button>
+        <button class="btn btn-primary btn-sm" onclick="dlQR('${q.key}','${q.label}')" ${!isActive?'disabled':''}>⬇ Download</button>
+      </div>
+    </div>`;
+  }).join('');
+
+  const examButtons = (t.PreExamRequired==='TRUE'||t.PostExamRequired==='TRUE') ? `
+    <div class="card" style="margin-top:16px">
+      <div class="card-title">⚙️ Exam Question Builder</div>
+      <div class="btn-group">
+        ${t.PreExamRequired==='TRUE'?`<button class="btn btn-ghost" onclick="openExamBuilder('pre')">📋 Build Pre-Exam Questions</button>`:''}
+        ${t.PostExamRequired==='TRUE'?`<button class="btn btn-ghost" onclick="openExamBuilder('post')">📋 Build Post-Exam Questions</button>`:''}
+      </div>
+    </div>` : '';
+
+  return notActiveMsg + `<div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:16px">${qrCards}</div>` + examButtons;
+}
+
+function printQR(key,label,subject,title,url){
+  const t = report.training;
+  const qrUrl = Utils.generateQRDataURL(url, 280);
+  const w = window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><style>
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:Arial,sans-serif;background:#fff;display:flex;align-items:center;justify-content:center;min-height:100vh;padding:20px}
+    .sheet{border:3px solid #003399;border-radius:14px;padding:28px;max-width:460px;width:100%;text-align:center}
+    .logo{height:50px;margin-bottom:12px}
+    .hospital{font-size:16px;font-weight:700;color:#003399;margin-bottom:2px}
+    .tagline{font-size:10px;color:#64748b;letter-spacing:1px;text-transform:uppercase;margin-bottom:16px}
+    .training-title{font-size:20px;font-weight:800;color:#0a0e1a;margin-bottom:4px;line-height:1.2}
+    .subject{font-size:13px;color:#64748b;font-style:italic;margin-bottom:18px}
+    .qr-wrap{background:#f8f9fa;border-radius:10px;padding:14px;display:inline-block;margin-bottom:16px}
+    .label{background:#003399;color:#fff;padding:8px 22px;border-radius:7px;font-size:17px;font-weight:800;letter-spacing:1px;display:inline-block;margin-bottom:14px}
+    .meta{font-size:12px;color:#64748b;line-height:2.1}
+    .meta strong{color:#0a0e1a}
+    .footer{margin-top:16px;font-size:10px;color:#94a3b8}
+    @media print{body{padding:0}.sheet{border-radius:0;min-height:100vh;border:2px solid #003399;max-width:100%}}
+  </style></head><body>
+    <div class="sheet">
+      <div class="hospital">🏥 Marengo Asia Hospitals</div>
+      <div class="tagline">Humane by Practice · Training Department</div>
+      <div class="training-title">${title}</div>
+      <div class="subject">${subject}</div>
+      <div class="qr-wrap"><img src="${qrUrl}" width="220" height="220"></div><br>
+      <div class="label">${label.toUpperCase()} QR CODE</div>
+      <div class="meta">
+        <strong>Department:</strong> ${t.Department}<br>
+        <strong>Date:</strong> ${Utils.formatDate(t.StartDate)} &nbsp;·&nbsp; <strong>Time:</strong> ${t.StartTime||''}${t.EndTime?'–'+t.EndTime:''}<br>
+        <strong>Venue:</strong> ${t.Venue}<br>
+        <strong>Trainer:</strong> ${t.TrainerName}
+      </div>
+      <div class="footer">Scan with mobile camera · No login required · Marengo Asia Hospitals Training System</div>
+    </div>
+    <script>window.onload=()=>window.print();<\/script>
+  </body></html>`);
+}
+
+function dlQR(key,label){
+  const img=document.getElementById('qrimg-'+key);
+  if(!img){Toast.show('QR not available.','warning');return;}
+  const a=document.createElement('a');a.href=img.src;a.download=label+'_QR.png';a.target='_blank';a.click();
+  Toast.show('QR downloaded!','success');
+}
+
+function renderAttendance(){
+  const att=report.attendance;
+  return `<div class="btn-group no-print" style="margin-bottom:14px">
+    <button class="btn btn-ghost" onclick="dlAttExcel()">📥 Download Excel</button>
+    <button class="btn btn-ghost" onclick="printAtt()">🖨️ Print Sheet</button>
+    ${report.training.CertificateEnabled==='TRUE'?`<button class="btn btn-violet" onclick="showCertMgr()">🏆 Certificates</button>`:''}
+  </div>
+  <div class="card" style="padding:0;overflow:hidden"><div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Emp ID</th><th>Name</th><th>Department</th><th>Designation</th><th>Time (IST)</th></tr></thead>
+    <tbody>${att.length===0
+      ?`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">✅</div><div class="empty-title">No attendance yet</div><div class="empty-sub">Share the Attendance QR code at the venue</div></div></td></tr>`
+      :att.map((a,i)=>`<tr>
+        <td style="color:var(--text3)">${i+1}</td>
+        <td><code style="font-size:12px;background:var(--surf3);padding:2px 7px;border-radius:4px;color:var(--teal)">${a.EmployeeID}</code></td>
+        <td><strong>${a.EmployeeName}</strong></td>
+        <td>${a.Department}</td>
+        <td style="color:var(--text2)">${a.Designation}</td>
+        <td style="font-size:12px;color:var(--text3)">${a.Timestamp}</td>
+      </tr>`).join('')}
+    </tbody>
+  </table></div></div>`;
+}
+
+function renderFeedback(){
+  const fb=report.feedback;
+  return `<div class="btn-group no-print" style="margin-bottom:14px">
+    <button class="btn btn-ghost" onclick="dlFbExcel()">📥 Download Excel</button>
+    <button class="btn btn-ghost" onclick="printFb()">🖨️ Print Report</button>
+  </div>
+  <div class="card" style="padding:0;overflow:hidden"><div class="table-wrap"><table>
+    <thead><tr><th>#</th><th>Employee</th><th>Overall</th><th>Trainer</th><th>Comments</th><th>Time (IST)</th></tr></thead>
+    <tbody>${fb.length===0
+      ?`<tr><td colspan="6"><div class="empty-state"><div class="empty-icon">📝</div><div class="empty-title">No feedback yet</div></div></td></tr>`
+      :fb.map((f,i)=>{
+        const stars=n=>'★'.repeat(Math.round(parseFloat(n)||0))+'☆'.repeat(5-Math.round(parseFloat(n)||0));
+        return `<tr>
+          <td style="color:var(--text3)">${i+1}</td>
+          <td><strong>${f.EmployeeName}</strong></td>
+          <td><span style="color:var(--gold)">${stars(f.OverallRating)}</span> <span style="font-size:11px;color:var(--text2)">${f.OverallRating}/5</span></td>
+          <td><span style="color:var(--gold)">${stars(f.TrainerRating)}</span> <span style="font-size:11px;color:var(--text2)">${f.TrainerRating}/5</span></td>
+          <td style="color:var(--text2);max-width:180px;font-size:12px">${f.Comments||'—'}</td>
+          <td style="font-size:12px;color:var(--text3)">${f.Timestamp}</td>
+        </tr>`;
+      }).join('')}
+    </tbody>
+  </table></div></div>`;
+}
+
+function renderExams(t){
+  return `<div class="btn-group no-print" style="margin-bottom:14px">
+    <button class="btn btn-ghost" onclick="dlExamExcel()">📥 Download Results</button>
+    ${t.PreExamRequired==='TRUE'?`<button class="btn btn-ghost" onclick="openExamBuilder('pre')">📋 Edit Pre-Exam</button>`:''}
+    ${t.PostExamRequired==='TRUE'?`<button class="btn btn-ghost" onclick="openExamBuilder('post')">📋 Edit Post-Exam</button>`:''}
+  </div>
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px" class="exam-grid">
+    ${t.PreExamRequired==='TRUE'?examTable(report.preExamResults||[],'Pre-Exam Results'):''}
+    ${t.PostExamRequired==='TRUE'?examTable(report.postExamResults||[],'Post-Exam Results'):''}
+  </div>`;
+}
+
+function examTable(results,label){
+  return `<div class="card">
+    <div class="card-title">📋 ${label}</div>
+    ${results.length===0
+      ?`<div class="empty-state" style="padding:20px"><div class="empty-icon">📋</div><div class="empty-sub">No submissions yet</div></div>`
+      :`<div class="table-wrap"><table>
+        <thead><tr><th>Employee</th><th>Score</th><th>%</th><th>Result</th></tr></thead>
+        <tbody>${results.map(r=>{const pct=parseFloat(r.Percentage)||0;return`<tr>
+          <td><strong>${r.EmployeeName}</strong></td>
+          <td>${r.Score}/${r.MaxScore}</td>
+          <td><strong>${r.Percentage}%</strong></td>
+          <td><span class="badge ${pct>=50?'badge-green':'badge-red'}">${pct>=50?'Pass':'Fail'}</span></td>
+        </tr>`;}).join('')}</tbody>
+      </table></div>`}
+  </div>`;
+}
+
+function renderPhotos(){
+  const photos=report.photos||[];
+  return `<div class="card">
+    <div class="card-title" style="justify-content:space-between">
+      📷 Training Photos
+      <label class="btn btn-primary" style="cursor:pointer">
+        📷 Add Photos<input type="file" accept="image/*" multiple capture="environment" style="display:none" onchange="uploadPhotos(this)">
+      </label>
+    </div>
+    ${photos.length===0
+      ?`<div class="empty-state"><div class="empty-icon">📷</div><div class="empty-title">No photos yet</div><div class="empty-sub">Capture training moments directly in the app</div></div>`
+      :`<div class="photo-grid">${photos.map(p=>`<a href="${p.url}" target="_blank"><img class="photo-thumb" src="${p.thumb}" alt="${p.name}" onerror="this.src=''"></a>`).join('')}</div>`}
+  </div>`;
+}
+
+// ── Actions ──
+async function changeStatus(status){
+  const msg=status==='Active'?'Activate training? QR codes will go live immediately.':'Complete training? Auto email will be sent to HR.';
+  if(!confirm(msg)) return;
+  const res=await SmartAPI.updateStatus(trainingId,status);
+  if(res.success){Toast.show(status==='Active'?'Training activated! QR codes are live.':'Training completed! HR notified.','success');await loadDetail();}
+  else Toast.show('Error: '+(res.message||''),'error');
+}
+
+async function sendHREmail(){
+  Toast.show('Sending email to HR...','info');
+  if(DEMO.isDemoMode()){setTimeout(()=>Toast.show('Demo: HR email simulated ✓','success'),1000);return;}
+  const res=await API.call('sendManualHREmail',{trainingId});
+  Toast.show(res.message||'Done','success');
+}
+
+// ── Exam Builder ──
+let examQs=[], examType='';
+function openExamBuilder(type){
+  examType=type;
+  const demoQ=DEMO.examQuestions[trainingId+'_'+type]||[];
+  examQs=[...demoQ];
+  renderExamModal();
+}
+function renderExamModal(){
+  openModal((examType==='pre'?'Pre':'Post')+'-Exam Question Builder',`
+    <div class="btn-group" style="margin-bottom:14px">
+      <button class="btn btn-ghost btn-sm" onclick="addQ()">＋ Add Question</button>
+    </div>
+    <div id="qList">${renderQList()}</div>
+    <div class="btn-group" style="justify-content:flex-end;margin-top:14px">
+      <button class="btn btn-ghost" onclick="closeModal()">Cancel</button>
+      <button class="btn btn-primary" onclick="saveExamQs()">💾 Save Questions</button>
+    </div>`,'modal-lg');
+}
+function renderQList(){
+  if(!examQs.length) return `<div class="empty-state" style="padding:20px"><div class="empty-icon">📋</div><div class="empty-sub">Add questions above</div></div>`;
+  return examQs.map((q,i)=>`
+    <div style="background:var(--surf3);border:1px solid var(--border);border-radius:11px;padding:14px;margin-bottom:10px">
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+        <span style="font-size:11px;font-weight:700;color:var(--teal);text-transform:uppercase">Question ${i+1}</span>
+        <button class="btn btn-danger btn-sm btn-icon" onclick="removeQ(${i})">🗑</button>
+      </div>
+      <div class="fg"><label>Question</label><textarea rows="2" id="qq${i}" style="width:100%;resize:none">${q.Question||q.question||''}</textarea></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Option A</label><input type="text" id="qa${i}" value="${q.OptionA||q.optionA||''}"></div>
+        <div class="fg"><label>Option B</label><input type="text" id="qb${i}" value="${q.OptionB||q.optionB||''}"></div>
+        <div class="fg"><label>Option C</label><input type="text" id="qc${i}" value="${q.OptionC||q.optionC||''}"></div>
+        <div class="fg"><label>Option D</label><input type="text" id="qd${i}" value="${q.OptionD||q.optionD||''}"></div>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px">
+        <div class="fg"><label>Correct Answer</label>
+          <select id="qcorr${i}">
+            ${['A','B','C','D'].map(o=>`<option value="${o}" ${(q.CorrectOption||q.correct)===o?'selected':''}>${o}</option>`).join('')}
+          </select>
+        </div>
+        <div class="fg"><label>Marks</label><input type="number" id="qmarks${i}" value="${q.Marks||q.marks||1}" min="1"></div>
+      </div>
+    </div>`).join('');
+}
+function addQ(){examQs.push({Question:'',OptionA:'',OptionB:'',OptionC:'',OptionD:'',CorrectOption:'A',Marks:1});document.getElementById('qList').innerHTML=renderQList();}
+function removeQ(i){examQs.splice(i,1);document.getElementById('qList').innerHTML=renderQList();}
+async function saveExamQs(){
+  const built=examQs.map((_,i)=>({
+    question:document.getElementById('qq'+i).value,
+    optionA:document.getElementById('qa'+i).value,optionB:document.getElementById('qb'+i).value,
+    optionC:document.getElementById('qc'+i).value,optionD:document.getElementById('qd'+i).value,
+    correct:document.getElementById('qcorr'+i).value,
+    marks:parseInt(document.getElementById('qmarks'+i).value)||1
+  }));
+  if(DEMO.isDemoMode()){DEMO.examQuestions[trainingId+'_'+examType]=built;closeModal();Toast.show('Questions saved!','success');return;}
+  const res=await API.call('saveExamQuestions',{trainingId,examType,questions:JSON.stringify(built)});
+  if(res.success){closeModal();Toast.show('Questions saved!','success');}
+  else Toast.show('Error.','error');
+}
+
+// ── Certificates ──
+function showCertMgr(){
+  const att=report.attendance;
+  openModal('🏆 Generate Certificates',`
+    <p style="color:var(--text2);margin-bottom:14px;font-size:13px">Select employee to generate certificate:</p>
+    <div style="display:flex;flex-direction:column;gap:8px">
+      ${att.map(a=>`<div style="display:flex;align-items:center;justify-content:space-between;padding:11px 14px;background:var(--surf3);border:1px solid var(--border);border-radius:9px">
+        <div><div style="font-weight:600">${a.EmployeeName}</div><div style="font-size:12px;color:var(--text2)">${a.EmployeeID} · ${a.Department}</div></div>
+        <button class="btn btn-violet btn-sm" onclick="showCert('${a.EmployeeID}','${a.EmployeeName}','${a.Department}','${a.Designation}')">🏆 View</button>
+      </div>`).join('')}
+    </div>`);
+}
+function showCert(empId,empName,dept,desig){
+  const t=report.training;
+  openModal(`Certificate — ${empName}`,`
+    <div id="certContent">
+      <div style="border:5px double var(--teal,#00c9b1);border-radius:14px;padding:36px 30px;text-align:center;background:linear-gradient(135deg,#0a0e1a,#1a1a2e);color:white;font-family:Georgia,serif;position:relative;overflow:hidden">
+        <div style="position:absolute;top:-40px;left:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(0,201,177,.15),transparent 70%)"></div>
+        <div style="position:absolute;bottom:-40px;right:-40px;width:180px;height:180px;background:radial-gradient(circle,rgba(0,51,153,.1),transparent 70%)"></div>
+        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#94a3b8;margin-bottom:6px">Marengo Asia Hospitals</div>
+        <div style="font-size:42px;margin-bottom:4px">🏆</div>
+        <div style="font-size:11px;letter-spacing:3px;text-transform:uppercase;color:#94a3b8;margin-bottom:14px">Certificate of Completion</div>
+        <div style="font-size:13px;color:#94a3b8;margin-bottom:10px">This is to certify that</div>
+        <div style="font-size:26px;font-weight:700;border-bottom:2px solid rgba(0,201,177,.5);display:inline-block;padding-bottom:5px;margin-bottom:8px;color:#00c9b1">${empName}</div>
+        <div style="font-size:13px;color:#94a3b8;margin-bottom:4px">${desig} · ${dept}</div>
+        <div style="font-size:13px;margin:14px 0 6px">has successfully completed</div>
+        <div style="font-size:20px;font-weight:700;color:white;margin-bottom:4px">${t.Title}</div>
+        <div style="font-size:13px;color:#94a3b8;font-style:italic;margin-bottom:14px">${t.Subject}</div>
+        <div style="font-size:13px;color:#94a3b8">Conducted by <strong style="color:white">${t.TrainerName}</strong></div>
+        <div style="font-size:13px;color:#94a3b8">at <strong style="color:white">${t.Venue}</strong> on <strong style="color:white">${Utils.formatDate(t.StartDate)}</strong></div>
+        <div style="display:flex;justify-content:space-around;margin-top:28px;padding-top:16px;border-top:1px solid rgba(255,255,255,.1)">
+          ${['Trainer','HR Manager','Department Head'].map(r=>`<div style="text-align:center"><div style="width:90px;border-top:1px solid rgba(255,255,255,.3);margin:0 auto 4px"></div><div style="font-size:10px;color:#64748b;text-transform:uppercase;letter-spacing:.5px">${r}</div></div>`).join('')}
+        </div>
+      </div>
+    </div>
+    <div class="btn-group" style="justify-content:center;margin-top:14px">
+      <button class="btn btn-primary btn-lg" onclick="printCert()">🖨️ Print / Save as PDF</button>
+    </div>`);
+}
+function printCert(){
+  const c=document.getElementById('certContent').innerHTML;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><style>body{margin:0;font-family:Georgia,serif;background:#0a0e1a}</style></head><body>${c}<script>window.onload=()=>window.print()<\/script></body></html>`);
+}
+
+// ── Downloads ──
+function dlAttExcel(){
+  const att=report.attendance;
+  Utils.downloadCSV([['#','Emp ID','Name','Department','Designation','Attendance Time (IST)'],...att.map((a,i)=>[i+1,a.EmployeeID,a.EmployeeName,a.Department,a.Designation,a.Timestamp])],`Attendance_${trainingId}.csv`);
+  Toast.show('Attendance downloaded!','success');
+}
+function dlFbExcel(){
+  const fb=report.feedback;
+  Utils.downloadCSV([['#','Employee','Overall Rating','Trainer Rating','Comments','Time (IST)'],...fb.map((f,i)=>[i+1,f.EmployeeName,f.OverallRating+'/5',f.TrainerRating+'/5',f.Comments||'',f.Timestamp])],`Feedback_${trainingId}.csv`);
+  Toast.show('Feedback downloaded!','success');
+}
+function dlExamExcel(){
+  const pre=report.preExamResults||[],post=report.postExamResults||[];
+  Utils.downloadCSV([['Employee','Exam Type','Score','Max Score','Percentage','Result'],...pre.map(r=>[r.EmployeeName,'Pre-Exam',r.Score,r.MaxScore,r.Percentage+'%',parseFloat(r.Percentage)>=50?'Pass':'Fail']),...post.map(r=>[r.EmployeeName,'Post-Exam',r.Score,r.MaxScore,r.Percentage+'%',parseFloat(r.Percentage)>=50?'Pass':'Fail'])],`ExamResults_${trainingId}.csv`);
+  Toast.show('Exam results downloaded!','success');
+}
+function printAtt(){
+  const t=report.training,att=report.attendance;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><style>body{font-family:Arial;font-size:12px;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:7px 10px}th{background:#003399;color:#fff}h2{text-align:center;margin-bottom:4px}p{text-align:center;color:#666;margin-bottom:14px}</style></head><body>
+    <div style="text-align:center;margin-bottom:8px"><strong>🏥 Marengo Asia Hospitals</strong><br><small>Training Department</small></div>
+    <h2>Training Attendance Sheet</h2>
+    <p>${t.Title} · ${t.Department} · ${Utils.formatDate(t.StartDate)} · ${t.Venue} · Trainer: ${t.TrainerName}</p>
+    <table><thead><tr><th>#</th><th>Emp ID</th><th>Name</th><th>Department</th><th>Designation</th><th>Time (IST)</th><th>Signature</th></tr></thead>
+    <tbody>${att.map((a,i)=>`<tr><td>${i+1}</td><td>${a.EmployeeID}</td><td>${a.EmployeeName}</td><td>${a.Department}</td><td>${a.Designation}</td><td>${a.Timestamp}</td><td style="width:100px">&nbsp;</td></tr>`).join('')}</tbody></table>
+    <p style="margin-top:14px">Total Attendees: <strong>${att.length}</strong></p>
+    <script>window.onload=()=>window.print()<\/script></body></html>`);
+}
+function printFb(){
+  const t=report.training,fb=report.feedback;
+  const w=window.open('','_blank');
+  w.document.write(`<!DOCTYPE html><html><head><style>body{font-family:Arial;font-size:12px;padding:20px}table{width:100%;border-collapse:collapse}th,td{border:1px solid #ddd;padding:7px 10px}th{background:#003399;color:#fff}h2{text-align:center;margin-bottom:4px}p{text-align:center;color:#666;margin-bottom:14px}</style></head><body>
+    <div style="text-align:center;margin-bottom:8px"><strong>🏥 Marengo Asia Hospitals</strong></div>
+    <h2>Feedback Report</h2>
+    <p>${t.Title} · ${t.Department} · ${Utils.formatDate(t.StartDate)}</p>
+    <table><thead><tr><th>#</th><th>Employee</th><th>Overall</th><th>Trainer</th><th>Comments</th><th>Time (IST)</th></tr></thead>
+    <tbody>${fb.map((f,i)=>`<tr><td>${i+1}</td><td>${f.EmployeeName}</td><td>${f.OverallRating}/5</td><td>${f.TrainerRating}/5</td><td>${f.Comments||'—'}</td><td>${f.Timestamp}</td></tr>`).join('')}</tbody></table>
+    <script>window.onload=()=>window.print()<\/script></body></html>`);
+}
+
+// ── Modal ──
+function openModal(title,body,size=''){
+  document.getElementById('modalTitle').textContent=title;
+  document.getElementById('modalBody').innerHTML=body;
+  document.getElementById('modalBox').className='modal-box '+(size||'');
+  document.getElementById('modalOverlay').classList.add('open');
+}
+function closeModal(){document.getElementById('modalOverlay').classList.remove('open');}
+document.getElementById('modalOverlay').addEventListener('click',e=>{if(e.target===document.getElementById('modalOverlay'))closeModal();});
+
+function uploadPhotos(input){
+  if(!input.files.length)return;
+  Toast.show('Demo: photo upload simulated','success');
+}
+</script>
+<style>
+@media(max-width:900px){.ov-grid,.exam-grid{grid-template-columns:1fr!important}.stat-row{grid-template-columns:repeat(2,1fr)!important}}
+</style>
+</body>
+</html>
