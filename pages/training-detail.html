@@ -169,7 +169,7 @@ function renderQRCodes(t) {
   ];
 
   const qrCards = types.map(q => {
-    const url = `${BASE}${q.page}&tid=${trainingId}`;
+    const url = `${BASE}${q.page}${q.page.includes('?') ? '&' : '?'}tid=${trainingId}`;
     const qrUrl = Utils.generateQRDataURL(url, 200);
     return `<div class="card" style="text-align:center;border-top:3px solid ${q.color};${!isActive?'opacity:.6':''}">
       <div style="font-size:28px;margin-bottom:6px">${q.icon}</div>
